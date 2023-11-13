@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <livox_ros_driver/CustomMsg.h>
+//#include <livox_ros_driver/CustomMsg.h>
 
 // Feature will be updated in next version
 
@@ -53,7 +53,6 @@ double smallp_intersect, smallp_ratio;
 int point_filter_num;
 
 void mid_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
-void horizon_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg);
 void velo16_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
 void oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
 void give_feature(pcl::PointCloud<PointType> &pl, vector<orgtype> &types, pcl::PointCloud<PointType> &pl_corn, pcl::PointCloud<PointType> &pl_surf);
@@ -100,11 +99,6 @@ int main(int argc, char **argv)
     printf("MID40\n");
     sub_points = n.subscribe("/livox/lidar", 1000, mid_handler);
     // sub_points = n.subscribe("/livox/lidar_1LVDG1S006J5GZ3", 1000, mid_handler);
-    break;
-
-  case HORIZON:
-    printf("HORIZON\n");
-    sub_points = n.subscribe("/livox/lidar", 1000, horizon_handler);
     break;
 
   case VELO16:
@@ -161,76 +155,6 @@ void mid_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
   pub_func(pl, pub_full, msg->header.stamp);
   pub_func(pl_surf, pub_surf, msg->header.stamp);
   pub_func(pl_corn, pub_corn, msg->header.stamp);
-}
-
-void horizon_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg)
-{
-  double t1 = omp_get_wtime();
-  vector<pcl::PointCloud<PointType>> pl_buff(N_SCANS);
-  vector<vector<orgtype>> typess(N_SCANS);
-  pcl::PointCloud<PointType> pl_full, pl_corn, pl_surf;
-
-  uint plsize = msg->point_num;
-
-  pl_corn.reserve(plsize); pl_surf.reserve(plsize);
-  pl_full.resize(plsize);
-
-  for(int i=0; i<N_SCANS; i++)
-  {
-    pl_buff[i].reserve(plsize);
-  }
-  
-  for(uint i=1; i<plsize; i++)
-  {
-    if((msg->points[i].line < N_SCANS) && ((msg->points[i].tag & 0x30) == 0x10)
-        && (!IS_VALID(msg->points[i].x)) && (!IS_VALID(msg->points[i].y)) && (!IS_VALID(msg->points[i].z)))
-    {
-      pl_full[i].x = msg->points[i].x;
-      pl_full[i].y = msg->points[i].y;
-      pl_full[i].z = msg->points[i].z;
-      pl_full[i].intensity = msg->points[i].reflectivity;
-      pl_full[i].curvature = msg->points[i].offset_time / float(1000000); //use curvature as time of each laser points
-
-      if((std::abs(pl_full[i].x - pl_full[i-1].x) > 1e-7) 
-          || (std::abs(pl_full[i].y - pl_full[i-1].y) > 1e-7)
-          || (std::abs(pl_full[i].z - pl_full[i-1].z) > 1e-7))
-      {
-        pl_buff[msg->points[i].line].push_back(pl_full[i]);
-      }
-    }
-  }
-
-  if(pl_buff[0].size() <= 7) {return;}
-
-  for(int j=0; j<N_SCANS; j++)
-  {
-    pcl::PointCloud<PointType> &pl = pl_buff[j];
-    vector<orgtype> &types = typess[j];
-    plsize = pl.size();
-    types.resize(plsize);
-    plsize--;
-    for(uint i=0; i<plsize; i++)
-    {
-
-      types[i].range = sqrt(pl[i].x*pl[i].x + pl[i].y*pl[i].y);
-      vx = pl[i].x - pl[i+1].x;
-      vy = pl[i].y - pl[i+1].y;
-      vz = pl[i].z - pl[i+1].z;
-      types[i].dista = vx*vx + vy*vy + vz*vz;
-      // std::cout<<vx<<" "<<vx<<" "<<vz<<" "<<std::endl;
-    }
-    // plsize++;
-    types[plsize].range = sqrt(pl[plsize].x*pl[plsize].x + pl[plsize].y*pl[plsize].y);
-
-    give_feature(pl, types, pl_corn, pl_surf);
-  }
-
-  ros::Time ct;
-  ct.fromNSec(msg->timebase);
-  pub_func(pl_full, pub_full, msg->header.stamp);
-  pub_func(pl_surf, pub_surf, msg->header.stamp);
-  pub_func(pl_corn, pub_corn, msg->header.stamp);
-  std::cout<<"[~~~~~~~~~~~~ Feature Extract ]: time: "<< omp_get_wtime() - t1<<" "<<msg->header.stamp.toSec()<<std::endl;
 }
 
 int orders[16] = {0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15};
