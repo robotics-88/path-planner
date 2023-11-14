@@ -77,12 +77,12 @@ void KinodynamicAstar::setKdtree(const pcl::PointCloud<pcl::PointXYZ> cloud_inpu
             sensor_msgs::PointCloud2 kdtreepointcloud,kdtreepointcloud2;
             pcl::toROSMsg((*cloud_filtered), kdtreepointcloud);//
             kdtreepointcloud.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
-            kdtreepointcloud.header.frame_id = "/camera_init";//camera_init
+            kdtreepointcloud.header.frame_id = "camera_init";//camera_init
             kd_ptcloud_pub.publish(kdtreepointcloud);
 
             pcl::toROSMsg(cloud_accumulate2, kdtreepointcloud2);//
             kdtreepointcloud2.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
-            kdtreepointcloud2.header.frame_id = "/camera_init";//camera_init
+            kdtreepointcloud2.header.frame_id = "camera_init";//camera_init
             kd_ptcloud_pub2.publish(kdtreepointcloud2);
 
 

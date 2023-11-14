@@ -625,8 +625,12 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "laserMapping");
     ros::NodeHandle nh;
 
+    // Get IMU topic
+    std::string imu_topic = "";
+    ros::param::get("~imu_topic",imu_topic);
+
     ros::Subscriber sub_pcl = nh.subscribe("/laser_cloud_flat", 20000, feat_points_cbk);
-    ros::Subscriber sub_imu = nh.subscribe("/livox/imu", 20000, imu_cbk);
+    ros::Subscriber sub_imu = nh.subscribe(imu_topic, 20000, imu_cbk);
     ros::Publisher pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>
             ("/cloud_registered", 100);
     ros::Publisher pubLaserCloudEffect  = nh.advertise<sensor_msgs::PointCloud2>
@@ -643,7 +647,7 @@ int main(int argc, char** argv)
     geometry_msgs::PoseStamped msg_body_pose;
     nav_msgs::Path path;
     path.header.stamp    = ros::Time::now();
-    path.header.frame_id ="/camera_init";
+    path.header.frame_id ="camera_init";
 
     /*** variables definition ***/
     bool dense_map_en, flg_EKF_inited = 0, flg_map_inited = 0, flg_EKF_converged = 0;
@@ -710,6 +714,7 @@ int main(int argc, char** argv)
     {
         if (flg_exit) break;
         ros::spinOnce();
+
         while(sync_packages(Measures)) 
         {
             if (flg_reset)
@@ -1193,7 +1198,8 @@ int main(int argc, char** argv)
             sensor_msgs::PointCloud2 laserCloudFullRes3;
             pcl::toROSMsg(*laserCloudFullResColor, laserCloudFullRes3);
             laserCloudFullRes3.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
-            laserCloudFullRes3.header.frame_id = "/camera_init";
+            laserCloudFullRes3.header.frame_id = "camera_init";
+
             pubLaserCloudFullRes.publish(laserCloudFullRes3);
             }
 
@@ -1209,7 +1215,7 @@ int main(int argc, char** argv)
             sensor_msgs::PointCloud2 laserCloudFullRes3;
             pcl::toROSMsg(*laserCloudFullResColor, laserCloudFullRes3);
             laserCloudFullRes3.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
-            laserCloudFullRes3.header.frame_id = "/camera_init";
+            laserCloudFullRes3.header.frame_id = "camera_init";
             pubLaserCloudEffect.publish(laserCloudFullRes3);
             }
 
@@ -1217,7 +1223,7 @@ int main(int argc, char** argv)
             // sensor_msgs::PointCloud2 laserCloudMap;
             // pcl::toROSMsg(*featsFromMap, laserCloudMap);
             // laserCloudMap.header.stamp = ros::Time::now();//ros::Time().fromSec(last_timestamp_lidar);
-            // laserCloudMap.header.frame_id = "/camera_init";
+            // laserCloudMap.header.frame_id = "camera_init";
             // pubLaserCloudMap.publish(laserCloudMap);
 
             /******* Publish Odometry ******/
@@ -1290,7 +1296,7 @@ int main(int argc, char** argv)
             q.setY( odomAftMapped.pose.pose.orientation.y );
             q.setZ( odomAftMapped.pose.pose.orientation.z );
             transform.setRotation( q );
-            br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, "/camera_init", "/aft_mapped" ) );
+            br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, "camera_init", "base_link" ) );
 
             
             msg_body_pose.header.stamp = ros::Time::now();
@@ -1307,7 +1313,7 @@ int main(int argc, char** argv)
             #endif
 
             /******* Publish Path ********/
-            msg_body_pose.header.frame_id = "/camera_init";
+            msg_body_pose.header.frame_id = "camera_init";
             path.poses.push_back(msg_body_pose);
             pubPath.publish(path);
 

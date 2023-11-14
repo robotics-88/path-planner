@@ -66,6 +66,9 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "feature_extract");
   ros::NodeHandle n;
 
+  // Only print PCL errors
+  pcl::console::setVerbosityLevel(pcl::console::L_ERROR);
+
   n.param<int>("lidar_type", lidar_type, 0);
   n.param<double>("blind", blind, 0.5);
   n.param<double>("inf_bound", inf_bound, 10);
