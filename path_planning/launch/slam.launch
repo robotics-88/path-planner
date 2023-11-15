@@ -1,7 +1,7 @@
 <launch>
 
-  <arg name="lidar_type" default="2"/>
-  <arg name="imu_topic" default="/mavros/imu/data"/>
+  <arg name="lidar_type" default="4"/>
+  <arg name="imu_topic" default="/livox/imu"/>
 
   <include file="$(find fast_lio)/launch/mapping_velodyne.launch" if="$(eval lidar_type == 2)">
     <arg name="imu_topic" value="$(arg imu_topic)"/>
