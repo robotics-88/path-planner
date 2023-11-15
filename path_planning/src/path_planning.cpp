@@ -249,7 +249,7 @@ public:
 
 				ROS_INFO("KINODYNAMIC SEARCH TIME: %f,search_count = %d,search average time = %f",t_search,kino_path_finder_->search_count,kino_path_finder_->search_time_amount/kino_path_finder_->search_count);
 
-				//compute transition from px4 local position to camera_init
+				//compute transition from px4 local position to slam_map
 				Eigen::Quaterniond quat_odom(uav_odom.pose.pose.orientation.w, uav_odom.pose.pose.orientation.x, uav_odom.pose.pose.orientation.y, uav_odom.pose.pose.orientation.z);
 				Eigen::Quaterniond quat_px4(local_pose.pose.orientation.w, local_pose.pose.orientation.x, local_pose.pose.orientation.y, local_pose.pose.orientation.z);
 				Eigen::Matrix3d rotation_odom;
@@ -279,7 +279,7 @@ public:
 
 				for(int i = 0; i<kino_path.size();i++)
 				{
-					kino_marker.header.frame_id = "camera_init";
+					kino_marker.header.frame_id = "slam_map";
 					kino_marker.header.stamp = ros::Time();
 					kino_marker.ns = "kino_path";
 					kino_marker.id = i;
@@ -312,11 +312,11 @@ public:
 					kino_nav_path_px4.poses.push_back(this_pose_stamped_px4);
 				}
 
-				kino_nav_path.header.frame_id = "camera_init";
+				kino_nav_path.header.frame_id = "slam_map";
 				kino_nav_path.header.stamp = ros::Time::now();
 				kino_path_pub.publish(kino_nav_path);
 
-				kino_nav_path_px4.header.frame_id = "camera_init";
+				kino_nav_path_px4.header.frame_id = "slam_map";
 				kino_nav_path_px4.header.stamp = ros::Time::now();
 				pos_pub.publish(kino_nav_path);
 				// vel_pub.publish(minjerk_velocity);

@@ -54,7 +54,7 @@ And play the bag by:
 
 ### 3.3 Set target point
 ```
-    rostopic pub /goal geometry_msgs/PoseStamped '{header: {stamp: now, frame_id: "camera_init"}, pose: {position: {x: 5.0, y: 0.0, z: 1.0}, orientation: {w: 1.0}}}'
+    rostopic pub /goal geometry_msgs/PoseStamped '{header: {stamp: now, frame_id: "slam_map"}, pose: {position: {x: 5.0, y: 0.0, z: 1.0}, orientation: {w: 1.0}}}'
 ```
 You can change the target point by setting different value of 'x','y','z' in the above command.
 

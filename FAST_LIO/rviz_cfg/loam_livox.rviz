@@ -655,7 +655,7 @@ Visualization Manager:
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: camera_init
+    Fixed Frame: slam_map
     Frame Rate: 30
   Name: root
   Tools:

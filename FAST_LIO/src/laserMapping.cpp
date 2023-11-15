@@ -647,7 +647,7 @@ int main(int argc, char** argv)
     geometry_msgs::PoseStamped msg_body_pose;
     nav_msgs::Path path;
     path.header.stamp    = ros::Time::now();
-    path.header.frame_id ="camera_init";
+    path.header.frame_id ="slam_map";
 
     /*** variables definition ***/
     bool dense_map_en, flg_EKF_inited = 0, flg_map_inited = 0, flg_EKF_converged = 0;
@@ -1198,7 +1198,7 @@ int main(int argc, char** argv)
             sensor_msgs::PointCloud2 laserCloudFullRes3;
             pcl::toROSMsg(*laserCloudFullResColor, laserCloudFullRes3);
             laserCloudFullRes3.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
-            laserCloudFullRes3.header.frame_id = "camera_init";
+            laserCloudFullRes3.header.frame_id = "slam_map";
 
             pubLaserCloudFullRes.publish(laserCloudFullRes3);
             }
@@ -1215,7 +1215,7 @@ int main(int argc, char** argv)
             sensor_msgs::PointCloud2 laserCloudFullRes3;
             pcl::toROSMsg(*laserCloudFullResColor, laserCloudFullRes3);
             laserCloudFullRes3.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
-            laserCloudFullRes3.header.frame_id = "camera_init";
+            laserCloudFullRes3.header.frame_id = "slam_map";
             pubLaserCloudEffect.publish(laserCloudFullRes3);
             }
 
@@ -1223,7 +1223,7 @@ int main(int argc, char** argv)
             // sensor_msgs::PointCloud2 laserCloudMap;
             // pcl::toROSMsg(*featsFromMap, laserCloudMap);
             // laserCloudMap.header.stamp = ros::Time::now();//ros::Time().fromSec(last_timestamp_lidar);
-            // laserCloudMap.header.frame_id = "camera_init";
+            // laserCloudMap.header.frame_id = "slam_map";
             // pubLaserCloudMap.publish(laserCloudMap);
 
             /******* Publish Odometry ******/
@@ -1249,7 +1249,7 @@ int main(int argc, char** argv)
             // Eigen::Vector3d pos_uav = R_to_inertial*(state.pos_end + state.rot_end * UAV_offset_to_LiD);
 
 
-            // //add transform from camera_init to UAV coordinate 
+            // //add transform from slam_map to UAV coordinate 
             // //初始化欧拉角(Z-Y-X，即RPY, 先绕x轴roll,再绕y轴pitch,最后绕z轴yaw)-2.0/180.0*3.1415926
             // Eigen::Vector3d ea(0.0/180.0*3.1415926, 0.0/180.0*3.1415926, 0.00769);
             // Eigen::Vector3d trans_param(0,0,0);//0.03, 0.15, 0.04
@@ -1270,7 +1270,7 @@ int main(int argc, char** argv)
             Eigen::Vector3d twist = state.rot_end.transpose() * state.vel_end;
 
 
-            odomAftMapped.header.frame_id = "odom";//camera_init
+            odomAftMapped.header.frame_id = "odom";//slam_map
             odomAftMapped.child_frame_id = "base_link";
             odomAftMapped.header.stamp = ros::Time::now();//ros::Time().fromSec(last_timestamp_lidar);
             odomAftMapped.pose.pose.orientation.x = geoQuat.x;
@@ -1296,7 +1296,7 @@ int main(int argc, char** argv)
             q.setY( odomAftMapped.pose.pose.orientation.y );
             q.setZ( odomAftMapped.pose.pose.orientation.z );
             transform.setRotation( q );
-            br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, "camera_init", "base_link" ) );
+            br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, "slam_map", "base_link" ) );
 
             
             msg_body_pose.header.stamp = ros::Time::now();
@@ -1313,7 +1313,7 @@ int main(int argc, char** argv)
             #endif
 
             /******* Publish Path ********/
-            msg_body_pose.header.frame_id = "camera_init";
+            msg_body_pose.header.frame_id = "slam_map";
             path.poses.push_back(msg_body_pose);
             pubPath.publish(path);
 

@@ -68,7 +68,7 @@ Visualization Manager:
           Value: false
         base_link_frd_stabilized:
           Value: false
-        camera_init:
+        slam_map:
           Value: true
         livox_frame:
           Value: true
@@ -91,7 +91,7 @@ Visualization Manager:
           map_ned:
             {}
         odom:
-          camera_init:
+          slam_map:
             base_link:
               base_link_frd:
                 base_link_frd_stabilized:
@@ -437,7 +437,7 @@ Visualization Manager:
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: camera_init
+    Fixed Frame: slam_map
     Frame Rate: 30
   Name: root
   Tools:
