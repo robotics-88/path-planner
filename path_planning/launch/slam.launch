@@ -2,7 +2,7 @@
 
   <arg name="lidar_type" default="2"/>
   <include file="$(find fast_lio)/launch/mapping_velodyne.launch" if="$(eval lidar_type == 2)"/>
-  <include file="$(find fast_lio)/launch/mapping_velodyne.launch" if="$(eval lidar_type == 0)"/>
+  <include file="$(find fast_lio)/launch/mapping_mid360.launch" if="$(eval lidar_type == 0)"/>
 
   <!-- This node will launch MAVROS -->
   <!-- <include file="$(find mavros)/launch/px4.launch"/> -->
