@@ -13,7 +13,7 @@ typedef pcl::PointXYZINormal PointType;
 
 ros::Publisher pub_full, pub_surf, pub_corn;
 
-enum LID_TYPE{MID, HORIZON, VELO16, OUST64};
+enum LID_TYPE{MID, HORIZON, VELO16, OUST64, MID360};
 
 enum Feature{Nor, Poss_Plane, Real_Plane, Edge_Jump, Edge_Plane, Wire, ZeroPoint};
 enum Surround{Prev, Next};
@@ -54,6 +54,7 @@ double smallp_intersect, smallp_ratio;
 int point_filter_num;
 
 void mid_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
+void mid360_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
 void velo16_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
 void oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
 void give_feature(pcl::PointCloud<PointType> &pl, vector<orgtype> &types, pcl::PointCloud<PointType> &pl_corn, pcl::PointCloud<PointType> &pl_surf);
@@ -114,6 +115,12 @@ int main(int argc, char **argv)
     sub_points = n.subscribe("/os1_cloud_node/points", 1000, oust64_handler);
     break;
   
+  case MID360:
+    printf("MID360\n");
+    sub_points = n.subscribe("/livox/lidar", 1000, mid360_handler);
+    // sub_points = n.subscribe("/livox/lidar_1LVDG1S006J5GZ3", 1000, mid_handler);
+    break;
+  
   default:
     printf("Lidar type is wrong.\n");
     exit(0);
@@ -131,6 +138,36 @@ int main(int argc, char **argv)
 
 double vx, vy, vz;
 void mid_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
+{
+  pcl::PointCloud<PointType> pl;
+  pcl::fromROSMsg(*msg, pl);
+
+  pcl::PointCloud<PointType> pl_corn, pl_surf;
+  vector<orgtype> types;
+  uint plsize = pl.size()-1;
+  pl_corn.reserve(plsize); pl_surf.reserve(plsize);
+  types.resize(plsize+1);
+
+  for(uint i=0; i<plsize; i++)
+  {
+    types[i].range = pl[i].x;
+    vx = pl[i].x - pl[i+1].x;
+    vy = pl[i].y - pl[i+1].y;
+    vz = pl[i].z - pl[i+1].z;
+    types[i].dista = vx*vx + vy*vy + vz*vz;
+  }
+  // plsize++;
+  types[plsize].range = sqrt(pl[plsize].x*pl[plsize].x + pl[plsize].y*pl[plsize].y);
+
+  give_feature(pl, types, pl_corn, pl_surf);
+
+  ros::Time ct(ros::Time::now());
+  pub_func(pl, pub_full, msg->header.stamp);
+  pub_func(pl_surf, pub_surf, msg->header.stamp);
+  pub_func(pl_corn, pub_corn, msg->header.stamp);
+}
+
+void mid360_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
 {
   pcl::PointCloud<PointType> pl;
   pcl::fromROSMsg(*msg, pl);

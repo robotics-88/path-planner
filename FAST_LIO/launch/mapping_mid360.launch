@@ -2,7 +2,7 @@
 
   <arg name="rviz" default="true" />
 
-  <param name="lidar_type" type="int" value="0"/>
+  <param name="lidar_type" type="int" value="4"/>
   <param name="lidar_frame" type="string" value="livox_frame"/>
 	<param name="blind" type="double" value="0.5"/>
 	<param name="inf_bound" type="double" value="10"/>
