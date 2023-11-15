@@ -1,8 +1,15 @@
 <launch>
 
   <arg name="lidar_type" default="2"/>
-  <include file="$(find fast_lio)/launch/mapping_velodyne.launch" if="$(eval lidar_type == 2)"/>
-  <include file="$(find fast_lio)/launch/mapping_mid360.launch" if="$(eval lidar_type == 4)"/>
+  <arg name="imu_topic" default="/mavros/imu/data"/>
+
+  <include file="$(find fast_lio)/launch/mapping_velodyne.launch" if="$(eval lidar_type == 2)">
+    <arg name="imu_topic" value="$(arg imu_topic)"/>
+  </include>
+
+  <include file="$(find fast_lio)/launch/mapping_mid360.launch" if="$(eval lidar_type == 4)">
+    <arg name="imu_topic" value="$(arg imu_topic)"/>
+  </include>
 
   <arg name="rviz" default="true"/>
   <node  pkg="rviz" type="rviz" name="rviz" args="-d $(find path_planning)/launch/demo.rviz" if="$(arg rviz)"/>
