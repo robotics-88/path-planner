@@ -1353,7 +1353,7 @@ int main(int argc, char** argv)
     // pcd_writer.writeBinary(corner_filename, corner_points);
     // }
 
-    #ifndef DEPLOY
+    /* #ifndef DEPLOY
     if (!T1.empty())
     {
         // plt::named_plot("add new frame",T1,s_plot2);
@@ -1368,7 +1368,7 @@ int main(int argc, char** argv)
         plt::close();
     }
     std::cout << "no points saved";
-    #endif
+    #endif */
 
     return 0;
 }
