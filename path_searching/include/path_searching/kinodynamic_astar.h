@@ -181,7 +181,7 @@ class KinodynamicAstar {
                     Eigen::Matrix<double, 6, 1>& state1, Eigen::Vector3d um,
                     double tau);
 
-  ros::Publisher kd_ptcloud_pub,kd_ptcloud_pub2;
+  ros::Publisher kd_ptcloud_pub_filtered,kd_ptcloud_pub_accumulated;
 
   ofstream outfile;
 
