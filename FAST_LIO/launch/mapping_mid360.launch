@@ -3,6 +3,7 @@
   <arg name="rviz" default="true" />
 
   <param name="lidar_type" type="int" value="0"/>
+  <param name="lidar_frame" type="string" value="livox_frame"/>
 	<param name="blind" type="double" value="0.5"/>
 	<param name="inf_bound" type="double" value="10"/>
 	<param name="N_SCANS" type="int" value="16"/>
@@ -15,7 +16,6 @@
 	<param name="limit_maxmin" type="double" value="3.24"/>
 	<param name="jump_up_limit" type="double" value="170.0"/>
 	<param name="jump_down_limit" type="double" value="8.0"/>
-	<param name="cos160" type="double" value="160.0"/>
 	<param name="edgea" type="double" value="2"/>
 	<param name="edgeb" type="double" value="0.1"/>
 	<param name="smallp_intersect" type="double" value="172.5"/>

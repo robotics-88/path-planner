@@ -15,7 +15,6 @@
 	<param name="limit_maxmin" type="double" value="3.24"/>
 	<param name="jump_up_limit" type="double" value="170.0"/>
 	<param name="jump_down_limit" type="double" value="8.0"/>
-	<param name="cos160" type="double" value="160.0"/>
 	<param name="edgea" type="double" value="2"/>
 	<param name="edgeb" type="double" value="0.1"/>
 	<param name="smallp_intersect" type="double" value="172.5"/>

@@ -38,8 +38,10 @@ struct orgtype
 };
 
 const double rad2deg = 180*M_1_PI;
+const double cos160 = cos(160.0/180*M_PI);
 
 int lidar_type;
+std::string lidar_frame;
 double blind, inf_bound;
 int N_SCANS;
 int group_size;
@@ -47,7 +49,6 @@ double disA, disB;
 double limit_maxmid, limit_midmin, limit_maxmin;
 double p2l_ratio;
 double jump_up_limit, jump_down_limit;
-double cos160;
 double edgea, edgeb;
 double smallp_intersect, smallp_ratio;
 int point_filter_num;
@@ -70,6 +71,7 @@ int main(int argc, char **argv)
   pcl::console::setVerbosityLevel(pcl::console::L_ERROR);
 
   n.param<int>("lidar_type", lidar_type, 0);
+  n.param<std::string>("lidar_frame", lidar_frame, "livox_frame");
   n.param<double>("blind", blind, 0.5);
   n.param<double>("inf_bound", inf_bound, 10);
   n.param<int>("N_SCANS", N_SCANS, 1);
@@ -82,7 +84,6 @@ int main(int argc, char **argv)
   n.param<double>("limit_maxmin", limit_maxmin, 3.24);
   n.param<double>("jump_up_limit", jump_up_limit, 175.0);
   n.param<double>("jump_down_limit", jump_down_limit, 5.0);
-  n.param<double>("cos160", cos160, 160.0);
   n.param<double>("edgea", edgea, 3);
   n.param<double>("edgeb", edgeb, 0.05);
   n.param<double>("smallp_intersect", smallp_intersect, 170.0);
@@ -91,7 +92,6 @@ int main(int argc, char **argv)
 
   jump_up_limit = cos(jump_up_limit/180*M_PI);
   jump_down_limit = cos(jump_down_limit/180*M_PI);
-  cos160 = cos(cos160/180*M_PI);
   smallp_intersect = cos(smallp_intersect/180*M_PI);
 
   ros::Subscriber sub_points;
@@ -772,7 +772,7 @@ void pub_func(pcl::PointCloud<PointType> &pl, ros::Publisher pub, const ros::Tim
   pl.height = 1; pl.width = pl.size();
   sensor_msgs::PointCloud2 output;
   pcl::toROSMsg(pl, output);
-  output.header.frame_id = "livox";
+  output.header.frame_id = lidar_frame;
   output.header.stamp = ct;
   pub.publish(output);
 }
