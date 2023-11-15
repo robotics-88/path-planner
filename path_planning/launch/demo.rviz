@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /TF1
         - /TF1/Frames1
         - /Raw Cloud1
         - /Path1/Offset1
@@ -30,7 +31,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: KD Cloud
+    SyncSource: Registered Cloud
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -65,13 +66,27 @@ Visualization Manager:
         All Enabled: false
         base_link:
           Value: true
+        base_link/Lidar2:
+          Value: false
+        base_link/odom:
+          Value: false
         base_link_frd:
           Value: false
         base_link_frd_stabilized:
           Value: false
         camera_init:
           Value: true
-        livox_frame:
+        front_center_custom_body:
+          Value: false
+        front_center_custom_optical:
+          Value: false
+        front_left_custom_body:
+          Value: false
+        front_left_custom_optical:
+          Value: false
+        front_right_custom_body:
+          Value: false
+        front_right_custom_optical:
           Value: false
         map:
           Value: false
@@ -81,6 +96,8 @@ Visualization Manager:
           Value: false
         odom_ned:
           Value: false
+        velodyne:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -92,13 +109,25 @@ Visualization Manager:
           map_ned:
             {}
         odom:
+          base_link/odom:
+            {}
           camera_init:
             base_link:
+              base_link/Lidar2:
+                velodyne:
+                  {}
               base_link_frd:
                 base_link_frd_stabilized:
                   {}
-              livox_frame:
-                {}
+              front_center_custom_body:
+                front_center_custom_optical:
+                  {}
+              front_left_custom_body:
+                front_left_custom_optical:
+                  {}
+              front_right_custom_body:
+                front_right_custom_optical:
+                  {}
           odom_ned:
             {}
       Update Interval: 0
@@ -190,8 +219,8 @@ Visualization Manager:
     - Alpha: 0.30000001192092896
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 2.090686321258545
-        Min Value: -0.3175765573978424
+        Max Value: 5.342814922332764
+        Min Value: -0.2989283800125122
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -462,7 +491,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 5.451239109039307
+      Distance: 12.050952911376953
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -470,9 +499,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 1.823340654373169
-        Y: -0.49985265731811523
-        Z: 0.3550794720649719
+        X: 2.1566333770751953
+        Y: -0.3349655866622925
+        Z: 1.4084160327911377
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
