@@ -25,7 +25,7 @@
   <node pkg="fast_lio" type="loam_feat_extract" name="feature_extract" output="screen"/>
 
   <node pkg="fast_lio" type="loam_laserMapping" name="laserMapping" output="log" required="true">
-    <param name="imu_topic" type="string" value="/mavros/imu/data"/>
+    <param name="imu_topic" type="string" value="$(arg imu_topic)"/>
     <param name="frame_id" type="string" value="base_link"/>
     <param name="map_file_path" type="string" value=" " />
     <param name="max_iteration" type="int" value="10" />
