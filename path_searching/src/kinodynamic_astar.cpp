@@ -106,11 +106,11 @@ bool KinodynamicAstar::isSafe(double x, double y,double z){
   //           << " " << searchPoint.z
   //           << ") with K=" << K << std::endl;
 
-  for(int i = 0;i<KT_NUM;i++)
-  {
+  // for(int i = 0;i<KT_NUM;i++)
+  // {
   ros::Time t1 = ros::Time::now();
   search_count++;
-  if ( kdtreeLocalMap[i].nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 )
+  if ( kdtreeLocalMap[0].nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 )
   {
     // for (std::size_t i = 0; i < pointIdxNKNSearch.size (); ++i)
     //   std::cout << "    "  <<   (*cloud)[ pointIdxNKNSearch[i] ].x 
@@ -118,7 +118,7 @@ bool KinodynamicAstar::isSafe(double x, double y,double z){
     //             << " " << (*cloud)[ pointIdxNKNSearch[i] ].z 
     //             << " (squared distance: " << pointNKNSquaredDistance[i] << ")" << std::endl;
 
-    if(pointNKNSquaredDistance[0] < SAFE_DIST*SAFE_DIST)
+    if(pointNKNSquaredDistance[0] < min_safe_dist_*min_safe_dist_)
     {
       return false;
     }
@@ -127,7 +127,7 @@ bool KinodynamicAstar::isSafe(double x, double y,double z){
   ros::Time t2 = ros::Time::now();
   // ROS_INFO("One search in nearest KDTREE used %f s, square distance = %f",(t2-t1).toSec(),pointNKNSquaredDistance[0]);
   search_time_amount = (t2-t1).toSec() + search_time_amount;
-  }
+  // }
 
   return true;
 }
@@ -168,15 +168,17 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
     expanded_nodes_.insert(cur_node->index, cur_node->time_idx, cur_node);
     // cout << "time start: " << time_start << endl;
   }
-  else
+  else {
+    cur_node->time = t1.toSec();
     expanded_nodes_.insert(cur_node->index, cur_node);
+  }
 
   PathNodePtr neighbor = NULL;
   PathNodePtr terminate_node = NULL;
   bool init_search = init;
   const int tolerance = ceil(1 / resolution_);
 
-  // std::cout << "kino initialized"<<std::endl;
+  std::cout << "kino initialized"<<std::endl;
   ros::Time t2 = ros::Time::now();
   ROS_INFO("INIT TIME = %f",(t2-t1).toSec());
 
@@ -287,7 +289,7 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
 
         // std::cout << "pro_id = "<< pro_id(0) <<" "<< pro_id(1) <<" "<< pro_id(2) <<" "<<std::endl;
 
-        int pro_t_id = timeToIndex(pro_t);
+        int pro_t_id = dynamic ? timeToIndex(pro_t) : 0;
         PathNodePtr pro_node = dynamic ? expanded_nodes_.find(pro_id, pro_t_id) : expanded_nodes_.find(pro_id);
         if (pro_node != NULL && pro_node->node_state == IN_CLOSE_SET)
         {
@@ -329,11 +331,11 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
         //dynamical distribute check number by distance
         double dist = sqrt(pow((pro_pos(0)-cur_state(0)),2)+pow((pro_pos(1)-cur_state(1)),2)+pow((pro_pos(2)-cur_state(2)),2));
         int dyn_checknum = 1;
-        if( dist < SAFE_DIST)
+        if( dist < min_safe_dist_)
         {
           dyn_checknum = 1;
         }else{
-          dyn_checknum = ceil(dist/(SAFE_DIST*2));
+          dyn_checknum = ceil(dist/(min_safe_dist_*2));
         }
 
         for (int k = 1; k <= dyn_checknum; ++k)
@@ -346,8 +348,8 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
 
           pos = xt.head(3);
 
-          //dont fly high
-          if(pos(2) > 1.3 || pos(2) < 0.2)
+          // check altitude limits
+          if(pos(2) > max_alt_ || pos(2) < min_alt_)
           {
             is_occ = true;
             break;
