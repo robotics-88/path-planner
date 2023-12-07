@@ -2,6 +2,8 @@
 
   <arg name="lidar_type" default="4"/>
   <arg name="imu_topic" default="/livox/imu"/>
+  <arg name="min_alt" default="1.5"/>
+  <arg name="max_alt" default="5.0"/>
 
   <include file="$(find fast_lio)/launch/mapping_velodyne.launch" if="$(eval lidar_type == 2)">
     <arg name="imu_topic" value="$(arg imu_topic)"/>
@@ -10,8 +12,6 @@
   <include file="$(find fast_lio)/launch/mapping_mid360.launch" if="$(eval lidar_type == 4)">
     <arg name="imu_topic" value="$(arg imu_topic)"/>
   </include>
-
-  <node pkg="tf" type="static_transform_publisher" name="slam_map_broadcaster" args="0 0 0 0 0 0 map slam_map 100" />
 
   <arg name="rviz" default="true"/>
   <node  pkg="rviz" type="rviz" name="rviz" args="-d $(find path_planning)/launch/demo.rviz" if="$(arg rviz)"/>
@@ -32,5 +32,7 @@
   </rosparam>
 
   <node  pkg="path_planning" type="path_planning_node" name="path_planning_node1" args="" output="screen">
+    <param name="search/min_alt" value="$(arg min_alt)"/>
+    <param name="search/max_alt" value="$(arg max_alt)"/>
   </node> 
 </launch>
