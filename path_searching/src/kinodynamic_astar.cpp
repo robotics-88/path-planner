@@ -77,12 +77,12 @@ void KinodynamicAstar::setKdtree(const pcl::PointCloud<pcl::PointXYZ> cloud_inpu
             sensor_msgs::PointCloud2 kdtreepointcloud,kdtreepointcloud2;
             pcl::toROSMsg((*cloud_filtered), kdtreepointcloud);//
             kdtreepointcloud.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
-            kdtreepointcloud.header.frame_id = "slam_map";
+            kdtreepointcloud.header.frame_id = slam_map_frame_;
             kd_ptcloud_pub_filtered.publish(kdtreepointcloud);
 
             pcl::toROSMsg(cloud_accumulate2, kdtreepointcloud2);//
             kdtreepointcloud2.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
-            kdtreepointcloud2.header.frame_id = "slam_map";
+            kdtreepointcloud2.header.frame_id = slam_map_frame_;
             kd_ptcloud_pub_accumulated.publish(kdtreepointcloud2);
 
 
@@ -486,6 +486,8 @@ void KinodynamicAstar::setParam(ros::NodeHandle& nh)
   double vel_margin;
   nh.param("search/vel_margin", vel_margin, 0.0);
   max_vel_ += vel_margin;
+
+  nh.param<std::string>("search/slam_map_frame", slam_map_frame_, "slam_map");
 
   kd_ptcloud_pub_filtered = nh.advertise<sensor_msgs::PointCloud2>("/kd_pointcloud_filtered",100);
   kd_ptcloud_pub_accumulated = nh.advertise<sensor_msgs::PointCloud2>("/kd_pointcloud_accumulated",100);

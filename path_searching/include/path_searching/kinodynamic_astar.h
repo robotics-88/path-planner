@@ -156,6 +156,8 @@ class KinodynamicAstar {
   bool optimistic_;
   double min_safe_dist_;
 
+  std::string slam_map_frame_;
+
   /* map */
   double resolution_, inv_resolution_, time_resolution_, inv_time_resolution_;
   Eigen::Vector3d origin_, map_size_3d_;

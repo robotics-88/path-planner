@@ -627,7 +627,13 @@ int main(int argc, char** argv)
 
     // Get IMU topic
     std::string imu_topic = "";
+    std::string slam_map_frame = "";
+    std::string base_frame = "";
+    std::string pose_topic = "";
     ros::param::get("~imu_topic",imu_topic);
+    ros::param::get("~slam_map_frame",slam_map_frame);
+    ros::param::get("~base_frame",base_frame);
+    ros::param::get("~pose_topic",pose_topic);
 
     ros::Subscriber sub_pcl = nh.subscribe("/laser_cloud_flat", 20000, feat_points_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 20000, imu_cbk);
@@ -641,13 +647,14 @@ int main(int argc, char** argv)
             ("/mavros/odometry/out", 10);
     ros::Publisher pubPath          = nh.advertise<nav_msgs::Path> 
             ("/path", 10);
+    ros::Publisher pose_publisher = nh.advertise<geometry_msgs::PoseStamped>(pose_topic, 10);
 #ifdef DEPLOY
     ros::Publisher mavros_pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose", 10);
 #endif
     geometry_msgs::PoseStamped msg_body_pose;
     nav_msgs::Path path;
     path.header.stamp    = ros::Time::now();
-    path.header.frame_id ="slam_map";
+    path.header.frame_id = slam_map_frame;
 
     /*** variables definition ***/
     bool dense_map_en, flg_EKF_inited = 0, flg_map_inited = 0, flg_EKF_converged = 0;
@@ -1198,7 +1205,7 @@ int main(int argc, char** argv)
             sensor_msgs::PointCloud2 laserCloudFullRes3;
             pcl::toROSMsg(*laserCloudFullResColor, laserCloudFullRes3);
             laserCloudFullRes3.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
-            laserCloudFullRes3.header.frame_id = "slam_map";
+            laserCloudFullRes3.header.frame_id = slam_map_frame;
 
             pubLaserCloudFullRes.publish(laserCloudFullRes3);
             }
@@ -1215,7 +1222,7 @@ int main(int argc, char** argv)
             sensor_msgs::PointCloud2 laserCloudFullRes3;
             pcl::toROSMsg(*laserCloudFullResColor, laserCloudFullRes3);
             laserCloudFullRes3.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
-            laserCloudFullRes3.header.frame_id = "slam_map";
+            laserCloudFullRes3.header.frame_id = slam_map_frame;
             pubLaserCloudEffect.publish(laserCloudFullRes3);
             }
 
@@ -1223,7 +1230,7 @@ int main(int argc, char** argv)
             // sensor_msgs::PointCloud2 laserCloudMap;
             // pcl::toROSMsg(*featsFromMap, laserCloudMap);
             // laserCloudMap.header.stamp = ros::Time::now();//ros::Time().fromSec(last_timestamp_lidar);
-            // laserCloudMap.header.frame_id = "slam_map";
+            // laserCloudMap.header.frame_id = slam_map_frame;
             // pubLaserCloudMap.publish(laserCloudMap);
 
             /******* Publish Odometry ******/
@@ -1270,8 +1277,8 @@ int main(int argc, char** argv)
             Eigen::Vector3d twist = state.rot_end.transpose() * state.vel_end;
 
 
-            odomAftMapped.header.frame_id = "odom";//slam_map
-            odomAftMapped.child_frame_id = "base_link";
+            odomAftMapped.header.frame_id = "odom";
+            odomAftMapped.child_frame_id = base_frame;
             odomAftMapped.header.stamp = ros::Time::now();//ros::Time().fromSec(last_timestamp_lidar);
             odomAftMapped.pose.pose.orientation.x = geoQuat.x;
             odomAftMapped.pose.pose.orientation.y = geoQuat.y;
@@ -1296,11 +1303,11 @@ int main(int argc, char** argv)
             q.setY( odomAftMapped.pose.pose.orientation.y );
             q.setZ( odomAftMapped.pose.pose.orientation.z );
             transform.setRotation( q );
-            br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, "slam_map", "base_link" ) );
+            br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, slam_map_frame, base_frame ) );
 
             
             msg_body_pose.header.stamp = ros::Time::now();
-            msg_body_pose.header.frame_id = "/camera_odom_frame";
+            msg_body_pose.header.frame_id = slam_map_frame;
             msg_body_pose.pose.position.x = state.pos_end(0);
             msg_body_pose.pose.position.y = state.pos_end(1);
             msg_body_pose.pose.position.z = state.pos_end(2);
@@ -1308,12 +1315,14 @@ int main(int argc, char** argv)
             msg_body_pose.pose.orientation.y = geoQuat.y;
             msg_body_pose.pose.orientation.z = geoQuat.z;
             msg_body_pose.pose.orientation.w = geoQuat.w;
+
+            pose_publisher.publish(msg_body_pose);
             #ifdef DEPLOY
             mavros_pose_publisher.publish(msg_body_pose);
             #endif
 
             /******* Publish Path ********/
-            msg_body_pose.header.frame_id = "slam_map";
+            msg_body_pose.header.frame_id = slam_map_frame;
             path.poses.push_back(msg_body_pose);
             pubPath.publish(path);
 
