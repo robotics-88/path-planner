@@ -40,6 +40,7 @@ ofstream outfile;
 unique_ptr<KinodynamicAstar> kino_path_finder_;
 
 std::string slam_map_frame_;
+std::string slam_pose_topic_;
 
 class planner {
 public:
@@ -444,6 +445,7 @@ int main(int argc, char **argv)
 	planner planner_object;
 
 	n.param<std::string>("/search/slam_map_frame", slam_map_frame_, "slam_map");
+	n.param<std::string>("slam_pose_topic", slam_pose_topic_, "/decco/pose");
 
     //kino astar
     kino_path_finder_.reset(new KinodynamicAstar);
@@ -455,7 +457,7 @@ int main(int argc, char **argv)
 	ros::Subscriber odom_sub = n.subscribe<nav_msgs::Odometry>("/mavros/odometry/out", 1, boost::bind(&odomCb, _1, &planner_object));
 	ros::Subscriber pointcloud_sub = n.subscribe<sensor_msgs::PointCloud2>("/cloud_registered", 1, boost::bind(&cloudCallback, _1, &planner_object));
 
-	ros::Subscriber pose_sub = n.subscribe<geometry_msgs::PoseStamped>("/mavros/local_position/pose", 100, boost::bind(&poseCb, _1, &planner_object));
+	ros::Subscriber pose_sub = n.subscribe<geometry_msgs::PoseStamped>(slam_pose_topic_, 100, boost::bind(&poseCb, _1, &planner_object));
 
 	ros::Subscriber goal_sub = n.subscribe<geometry_msgs::PoseStamped>("/goal", 10000, boost::bind(&goalCb, _1, &planner_object));
 

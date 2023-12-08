@@ -4,7 +4,7 @@
   <arg name="imu_topic" default="/mavros/imu/data"/>
   <arg name="slam_map_frame" default="slam_map"/>
   <arg name="base_frame" default="base_link"/>
-  <arg name="pose_topic" default="/decco/pose"/>
+  <arg name="slam_pose_topic" default="/decco/pose"/>
 
   <param name="lidar_type" type="int" value="2"/>
   <param name="lidar_frame" type="string" value="velodyne"/>
@@ -31,7 +31,7 @@
     <param name="imu_topic" type="string" value="$(arg imu_topic)"/>
     <param name="slam_map_frame" type="string" value="$(arg slam_map_frame)"/>
     <param name="base_frame" type="string" value="$(arg base_frame)"/>
-    <param name="pose_topic" type="string" value="$(arg pose_topic)"/>
+    <param name="slam_pose_topic" type="string" value="$(arg slam_pose_topic)"/>
     <param name="frame_id" type="string" value="base_link"/>
     <param name="map_file_path" type="string" value=" " />
     <param name="max_iteration" type="int" value="10" />

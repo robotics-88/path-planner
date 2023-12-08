@@ -629,11 +629,11 @@ int main(int argc, char** argv)
     std::string imu_topic = "";
     std::string slam_map_frame = "";
     std::string base_frame = "";
-    std::string pose_topic = "";
+    std::string slam_pose_topic = "";
     ros::param::get("~imu_topic",imu_topic);
     ros::param::get("~slam_map_frame",slam_map_frame);
     ros::param::get("~base_frame",base_frame);
-    ros::param::get("~pose_topic",pose_topic);
+    ros::param::get("~slam_pose_topic",slam_pose_topic);
 
     ros::Subscriber sub_pcl = nh.subscribe("/laser_cloud_flat", 20000, feat_points_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 20000, imu_cbk);
@@ -647,7 +647,7 @@ int main(int argc, char** argv)
             ("/mavros/odometry/out", 10);
     ros::Publisher pubPath          = nh.advertise<nav_msgs::Path> 
             ("/path", 10);
-    ros::Publisher pose_publisher = nh.advertise<geometry_msgs::PoseStamped>(pose_topic, 10);
+    ros::Publisher pose_publisher = nh.advertise<geometry_msgs::PoseStamped>(slam_pose_topic, 10);
 #ifdef DEPLOY
     ros::Publisher mavros_pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose", 10);
 #endif
