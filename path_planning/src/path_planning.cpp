@@ -39,6 +39,9 @@ ofstream outfile;
 
 unique_ptr<KinodynamicAstar> kino_path_finder_;
 
+std::string slam_map_frame_;
+std::string slam_pose_topic_;
+
 class planner {
 public:
 	void init_start(void)
@@ -284,7 +287,7 @@ public:
 
 				for(int i = 0; i<kino_path.size();i++)
 				{
-					kino_marker.header.frame_id = "slam_map";
+					kino_marker.header.frame_id = slam_map_frame_;
 					kino_marker.header.stamp = ros::Time();
 					kino_marker.ns = "kino_path";
 					kino_marker.id = i;
@@ -310,7 +313,7 @@ public:
 					this_pose_stamped.pose.position.x = kino_path[i](0);
 					this_pose_stamped.pose.position.y = kino_path[i](1);
 					this_pose_stamped.pose.position.z = kino_path[i](2);
-					this_pose_stamped.header.frame_id = "slam_map";
+					this_pose_stamped.header.frame_id = slam_map_frame_;
 					this_pose_stamped.header.stamp = ros::Time::now();
 					this_pose_stamped_px4.pose.position.x = kino_pathpose_px4(0);
 					this_pose_stamped_px4.pose.position.y = kino_pathpose_px4(1);
@@ -321,11 +324,11 @@ public:
 					kino_nav_path_px4.poses.push_back(this_pose_stamped_px4);
 				}
 
-				kino_nav_path.header.frame_id = "slam_map";
+				kino_nav_path.header.frame_id = slam_map_frame_;
 				kino_nav_path.header.stamp = ros::Time::now();
 				kino_path_pub.publish(kino_nav_path);
 
-				kino_nav_path_px4.header.frame_id = "slam_map";
+				kino_nav_path_px4.header.frame_id = slam_map_frame_;
 				kino_nav_path_px4.header.stamp = ros::Time::now();
 				pos_pub.publish(kino_nav_path);
 				// vel_pub.publish(minjerk_velocity);
@@ -441,6 +444,9 @@ int main(int argc, char **argv)
 
 	planner planner_object;
 
+	n.param<std::string>("/search/slam_map_frame", slam_map_frame_, "slam_map");
+	n.param<std::string>("slam_pose_topic", slam_pose_topic_, "/decco/pose");
+
     //kino astar
     kino_path_finder_.reset(new KinodynamicAstar);
     kino_path_finder_->setParam(n);
@@ -451,7 +457,7 @@ int main(int argc, char **argv)
 	ros::Subscriber odom_sub = n.subscribe<nav_msgs::Odometry>("/mavros/odometry/out", 1, boost::bind(&odomCb, _1, &planner_object));
 	ros::Subscriber pointcloud_sub = n.subscribe<sensor_msgs::PointCloud2>("/cloud_registered", 1, boost::bind(&cloudCallback, _1, &planner_object));
 
-	ros::Subscriber pose_sub = n.subscribe<geometry_msgs::PoseStamped>("/mavros/local_position/pose", 100, boost::bind(&poseCb, _1, &planner_object));
+	ros::Subscriber pose_sub = n.subscribe<geometry_msgs::PoseStamped>(slam_pose_topic_, 100, boost::bind(&poseCb, _1, &planner_object));
 
 	ros::Subscriber goal_sub = n.subscribe<geometry_msgs::PoseStamped>("/goal", 10000, boost::bind(&goalCb, _1, &planner_object));
 

@@ -1,15 +1,24 @@
 <launch>
-
-  <arg name="lidar_type" default="4"/>
+  <arg name="base_frame" default="base_link"/>
+  <arg name="slam_map_frame" default="slam_map"/>
+  <arg name="slam_pose_topic" default="/decco/pose"/>
   <arg name="imu_topic" default="/livox/imu"/>
+  <arg name="lidar_type" default="4"/>
   <arg name="min_alt" default="1.5"/>
   <arg name="max_alt" default="5.0"/>
+  <arg name="obstacle_dist_threshold" default="1.0"/>
 
   <include file="$(find fast_lio)/launch/mapping_velodyne.launch" if="$(eval lidar_type == 2)">
+    <arg name="base_frame" value="$(arg base_frame)"/>
+    <arg name="slam_map_frame" value="$(arg slam_map_frame)"/>
+    <arg name="slam_pose_topic" value="$(arg slam_pose_topic)"/>
     <arg name="imu_topic" value="$(arg imu_topic)"/>
   </include>
 
   <include file="$(find fast_lio)/launch/mapping_mid360.launch" if="$(eval lidar_type == 4)">
+    <arg name="base_frame" value="$(arg base_frame)"/>
+    <arg name="slam_map_frame" value="$(arg slam_map_frame)"/>
+    <arg name="slam_pose_topic" value="$(arg slam_pose_topic)"/>
     <arg name="imu_topic" value="$(arg imu_topic)"/>
   </include>
 
@@ -32,7 +41,9 @@
   </rosparam>
 
   <node  pkg="path_planning" type="path_planning_node" name="path_planning_node1" args="" output="screen">
+    <param name="search/slam_map_frame" value="$(arg slam_map_frame)"/>
     <param name="search/min_alt" value="$(arg min_alt)"/>
     <param name="search/max_alt" value="$(arg max_alt)"/>
+    <param name="search/obstacle_dist_threshold" value="$(arg obstacle_dist_threshold)"/>
   </node> 
 </launch>

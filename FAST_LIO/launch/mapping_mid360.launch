@@ -2,6 +2,9 @@
 
   <arg name="rviz" default="true"/>
   <arg name="imu_topic" default="/livox/imu"/>
+  <arg name="slam_map_frame" default="slam_map"/>
+  <arg name="base_frame" default="base_link"/>
+  <arg name="slam_pose_topic" default="/decco/pose"/>
 
   <param name="lidar_type" type="int" value="4"/>
   <param name="lidar_frame" type="string" value="livox_frame"/>
@@ -26,6 +29,9 @@
 
   <node pkg="fast_lio" type="loam_laserMapping" name="laserMapping" output="log" required="true">
     <param name="imu_topic" type="string" value="$(arg imu_topic)"/>
+    <param name="slam_map_frame" type="string" value="$(arg slam_map_frame)"/>
+    <param name="base_frame" type="string" value="$(arg base_frame)"/>
+    <param name="slam_pose_topic" type="string" value="$(arg slam_pose_topic)"/>
     <param name="frame_id" type="string" value="base_link"/>
     <param name="map_file_path" type="string" value=" " />
     <param name="max_iteration" type="int" value="10" />
