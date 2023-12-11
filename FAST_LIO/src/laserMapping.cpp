@@ -1272,8 +1272,14 @@ int main(int argc, char** argv)
             // Eigen::Vector3d new_trans_pos;
             // new_trans_pos = rotation_matrix3 * state.pos_end + trans_param;
 
-            geometry_msgs::Quaternion geoQuat = tf::createQuaternionMsgFromRollPitchYaw
-                    (euler_cur(0), euler_cur(1), euler_cur(2));
+            tf::Quaternion quat;
+            quat.setRPY(euler_cur(0), euler_cur(1), euler_cur(2));
+            quat.normalize();
+            geometry_msgs::Quaternion geoQuat;
+            geoQuat.x = quat.getX();
+            geoQuat.y = quat.getY();
+            geoQuat.z = quat.getZ();
+            geoQuat.w = quat.getW();
             Eigen::Vector3d twist = state.rot_end.transpose() * state.vel_end;
 
 
