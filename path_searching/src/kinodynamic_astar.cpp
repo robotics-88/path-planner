@@ -481,6 +481,7 @@ void KinodynamicAstar::setParam(ros::NodeHandle& nh)
   nh.param("search/optimistic", optimistic_, true);
   nh.param("search/min_alt", min_alt_, 1.5);
   nh.param("search/max_alt", max_alt_, 5.0);
+  nh.param("search/obstacle_dist_threshold", min_safe_dist_, 1.0);
   tie_breaker_ = 1.0 + 1.0 / 10000;
 
   double vel_margin;

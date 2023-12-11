@@ -6,6 +6,7 @@
   <arg name="lidar_type" default="4"/>
   <arg name="min_alt" default="1.5"/>
   <arg name="max_alt" default="5.0"/>
+  <arg name="obstacle_dist_threshold" default="1.0"/>
 
   <include file="$(find fast_lio)/launch/mapping_velodyne.launch" if="$(eval lidar_type == 2)">
     <arg name="base_frame" value="$(arg base_frame)"/>
@@ -43,5 +44,6 @@
     <param name="search/slam_map_frame" value="$(arg slam_map_frame)"/>
     <param name="search/min_alt" value="$(arg min_alt)"/>
     <param name="search/max_alt" value="$(arg max_alt)"/>
+    <param name="search/obstacle_dist_threshold" value="$(arg obstacle_dist_threshold)"/>
   </node> 
 </launch>
