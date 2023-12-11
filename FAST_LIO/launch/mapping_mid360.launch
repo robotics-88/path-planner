@@ -1,7 +1,7 @@
 <launch>
 
   <arg name="rviz" default="true"/>
-  <arg name="imu_topic" default="/livox/lidar"/>
+  <arg name="imu_topic" default="/livox/imu"/>
   <arg name="slam_map_frame" default="slam_map"/>
   <arg name="base_frame" default="base_link"/>
   <arg name="slam_pose_topic" default="/decco/pose"/>
