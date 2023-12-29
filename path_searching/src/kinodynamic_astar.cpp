@@ -479,16 +479,17 @@ void KinodynamicAstar::setParam(ros::NodeHandle& nh)
   nh.param("search/allocate_num", allocate_num_, -1);
   nh.param("search/check_num", check_num_, -1);
   nh.param("search/optimistic", optimistic_, true);
-  nh.param("search/min_alt", min_alt_, 1.5);
-  nh.param("search/max_alt", max_alt_, 5.0);
-  nh.param("search/obstacle_dist_threshold", min_safe_dist_, 1.0);
   tie_breaker_ = 1.0 + 1.0 / 10000;
 
   double vel_margin;
   nh.param("search/vel_margin", vel_margin, 0.0);
   max_vel_ += vel_margin;
 
-  nh.param<std::string>("search/slam_map_frame", slam_map_frame_, "slam_map");
+  ros::NodeHandle relative_nh("~");
+  relative_nh.param("search/min_alt", min_alt_, 1.5);
+  relative_nh.param("search/max_alt", max_alt_, 5.0);
+  relative_nh.param("search/obstacle_dist_threshold", min_safe_dist_, 1.0);
+  relative_nh.param<std::string>("search/slam_map_frame", slam_map_frame_, "slam_map");
 
   kd_ptcloud_pub_filtered = nh.advertise<sensor_msgs::PointCloud2>("/kd_pointcloud_filtered",100);
   kd_ptcloud_pub_accumulated = nh.advertise<sensor_msgs::PointCloud2>("/kd_pointcloud_accumulated",100);
