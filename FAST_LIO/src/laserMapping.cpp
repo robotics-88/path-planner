@@ -1322,7 +1322,7 @@ int main(int argc, char** argv)
             msg_body_pose.pose.orientation.w = geoQuat.w;
 
             pose_publisher.publish(msg_body_pose);
-            mavros_pose_publisher.publish(msg_body_pose);
+            //mavros_pose_publisher.publish(msg_body_pose);
 
             /******* Publish Path ********/
             msg_body_pose.header.frame_id = slam_map_frame;
