@@ -648,7 +648,6 @@ int main(int argc, char** argv)
     ros::Publisher pubPath          = nh.advertise<nav_msgs::Path> 
             ("/path", 10);
     ros::Publisher pose_publisher = nh.advertise<geometry_msgs::PoseStamped>(slam_pose_topic, 10);
-    ros::Publisher mavros_pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose", 10);
     
     geometry_msgs::PoseStamped msg_body_pose;
     nav_msgs::Path path;
@@ -1322,7 +1321,6 @@ int main(int argc, char** argv)
             msg_body_pose.pose.orientation.w = geoQuat.w;
 
             pose_publisher.publish(msg_body_pose);
-            //mavros_pose_publisher.publish(msg_body_pose);
 
             /******* Publish Path ********/
             msg_body_pose.header.frame_id = slam_map_frame;
