@@ -455,7 +455,7 @@ int main(int argc, char **argv)
     // outfile.open("/home/dji/kong_ws/RRT-andjerk_ws/test_time/searching_time.txt", ios::out | ios::trunc );
 
 	ros::Subscriber odom_sub = n.subscribe<nav_msgs::Odometry>("/mavros/odometry/out", 1, boost::bind(&odomCb, _1, &planner_object));
-	ros::Subscriber pointcloud_sub = n.subscribe<sensor_msgs::PointCloud2>("/cloud_registered", 1, boost::bind(&cloudCallback, _1, &planner_object));
+	ros::Subscriber pointcloud_sub = n.subscribe<sensor_msgs::PointCloud2>("/cloud_registered_map", 1, boost::bind(&cloudCallback, _1, &planner_object));
 
 	ros::Subscriber pose_sub = n.subscribe<geometry_msgs::PoseStamped>(slam_pose_topic_, 100, boost::bind(&poseCb, _1, &planner_object));
 
