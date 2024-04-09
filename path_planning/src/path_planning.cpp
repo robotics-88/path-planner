@@ -39,8 +39,8 @@ ofstream outfile;
 
 unique_ptr<KinodynamicAstar> kino_path_finder_;
 
-std::string slam_map_frame_;
-std::string slam_pose_topic_;
+std::string map_frame_;
+std::string pose_topic_;
 
 class planner {
 public:
@@ -287,7 +287,7 @@ public:
 
 				for(int i = 0; i<kino_path.size();i++)
 				{
-					kino_marker.header.frame_id = slam_map_frame_;
+					kino_marker.header.frame_id = map_frame_;
 					kino_marker.header.stamp = ros::Time();
 					kino_marker.ns = "kino_path";
 					kino_marker.id = i;
@@ -313,7 +313,7 @@ public:
 					this_pose_stamped.pose.position.x = kino_path[i](0);
 					this_pose_stamped.pose.position.y = kino_path[i](1);
 					this_pose_stamped.pose.position.z = kino_path[i](2);
-					this_pose_stamped.header.frame_id = slam_map_frame_;
+					this_pose_stamped.header.frame_id = map_frame_;
 					this_pose_stamped.header.stamp = ros::Time::now();
 					this_pose_stamped_px4.pose.position.x = kino_pathpose_px4(0);
 					this_pose_stamped_px4.pose.position.y = kino_pathpose_px4(1);
@@ -324,11 +324,11 @@ public:
 					kino_nav_path_px4.poses.push_back(this_pose_stamped_px4);
 				}
 
-				kino_nav_path.header.frame_id = slam_map_frame_;
+				kino_nav_path.header.frame_id = map_frame_;
 				kino_nav_path.header.stamp = ros::Time::now();
 				kino_path_pub.publish(kino_nav_path);
 
-				kino_nav_path_px4.header.frame_id = slam_map_frame_;
+				kino_nav_path_px4.header.frame_id = map_frame_;
 				kino_nav_path_px4.header.stamp = ros::Time::now();
 				pos_pub.publish(kino_nav_path);
 				// vel_pub.publish(minjerk_velocity);
@@ -406,11 +406,6 @@ void odomCb(const nav_msgs::Odometry::ConstPtr &msg, planner* planner_ptr)
 {
 	// ROS_INFO("RECEIVED ODOMETRY"); 
 	uav_odometry = *msg;
-	planner_ptr->setStart(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z, msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z,uav_odometry);
-	planner_ptr->init_start();
-	cur_pos(0) = msg->pose.pose.position.x;
-	cur_pos(1) = msg->pose.pose.position.y;
-	cur_pos(2) = msg->pose.pose.position.z;
 }
 
 void startCb(const geometry_msgs::PointStamped::ConstPtr &msg, planner* planner_ptr)
@@ -421,6 +416,12 @@ void startCb(const geometry_msgs::PointStamped::ConstPtr &msg, planner* planner_
 void poseCb(const geometry_msgs::PoseStamped::ConstPtr &msg, planner* planner_ptr)
 {
 	planner_ptr->setlocalpose(*msg);
+
+	planner_ptr->setStart(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z, 0, 0, 0,uav_odometry);
+	planner_ptr->init_start();
+	cur_pos(0) = msg->pose.position.x;
+	cur_pos(1) = msg->pose.position.y;
+	cur_pos(2) = msg->pose.position.z;
 }
 
 void goalCb(const geometry_msgs::PoseStamped::ConstPtr &msg, planner* planner_ptr)
@@ -444,8 +445,9 @@ int main(int argc, char **argv)
 
 	planner planner_object;
 
-	n.param<std::string>("/search/slam_map_frame", slam_map_frame_, "slam_map");
-	n.param<std::string>("slam_pose_topic", slam_pose_topic_, "/decco/pose");
+	ros::NodeHandle relative_nh("~");
+	relative_nh.param<std::string>("search/map_frame", map_frame_, "map");
+	relative_nh.param<std::string>("search/pose_topic", pose_topic_, "/mavros/local_position/pose");
 
     //kino astar
     kino_path_finder_.reset(new KinodynamicAstar);
@@ -455,9 +457,11 @@ int main(int argc, char **argv)
     // outfile.open("/home/dji/kong_ws/RRT-andjerk_ws/test_time/searching_time.txt", ios::out | ios::trunc );
 
 	ros::Subscriber odom_sub = n.subscribe<nav_msgs::Odometry>("/mavros/odometry/out", 1, boost::bind(&odomCb, _1, &planner_object));
-	ros::Subscriber pointcloud_sub = n.subscribe<sensor_msgs::PointCloud2>("/cloud_registered_map", 1, boost::bind(&cloudCallback, _1, &planner_object));
+	std::string cloud_topic = "/cloud_registered_map";
+	n.param<std::string>("/search/cloud", cloud_topic, cloud_topic);
+	ros::Subscriber pointcloud_sub = n.subscribe<sensor_msgs::PointCloud2>(cloud_topic, 1, boost::bind(&cloudCallback, _1, &planner_object));
 
-	ros::Subscriber pose_sub = n.subscribe<geometry_msgs::PoseStamped>(slam_pose_topic_, 100, boost::bind(&poseCb, _1, &planner_object));
+	ros::Subscriber pose_sub = n.subscribe<geometry_msgs::PoseStamped>(pose_topic_, 100, boost::bind(&poseCb, _1, &planner_object));
 
 	ros::Subscriber goal_sub = n.subscribe<geometry_msgs::PoseStamped>("/goal", 10000, boost::bind(&goalCb, _1, &planner_object));
 
