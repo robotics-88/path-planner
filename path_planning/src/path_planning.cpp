@@ -160,7 +160,7 @@ public:
 					status = kino_path_finder_->search(start_pt, start_vel, start_acc, goal_pt, goal_vel, false);
 
 					if (status == KinodynamicAstar::NO_PATH) {
-						// std::cout << "[kino replan]: Can't find path." << std::endl;
+						ROS_WARN_THROTTLE(1, "[kino replan]: Can't find path.");
 						return;
 					} else {
 						// std::cout << "[kino replan]: retry search success." << std::endl;
@@ -231,7 +231,7 @@ public:
 					status = kino_path_finder_->search(replan_startpt, replan_startpt_vel, start_acc, goal_pt, goal_vel, false);
 
 					if (status == KinodynamicAstar::NO_PATH) {
-						// std::cout << "[kino replan]: Can't find path." << std::endl;
+						ROS_WARN_THROTTLE(1, "[kino replan]: Can't find path.");
 						return;
 					} else {
 						//std::cout << "[kino replan]: retry search success." << std::endl;
