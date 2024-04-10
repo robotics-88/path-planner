@@ -229,7 +229,7 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
       }
       else if (cur_node->parent != NULL)
       {
-        std::cout << "near end" << std::endl;
+        // std::cout << "near end" << std::endl;
         return NEAR_END;
       }
       else
@@ -512,7 +512,7 @@ void KinodynamicAstar::retrievePath(PathNodePtr end_node)
     // ROS_INFO("CUR NODE = %f,%f,%f",cur_node->state(0),cur_node->state(1),cur_node->state(2));
     node_count++;
   }
-  ROS_INFO("node count = %d",node_count);
+  // ROS_INFO("node count = %d",node_count);
 
   reverse(path_nodes_.begin(), path_nodes_.end());
 }
