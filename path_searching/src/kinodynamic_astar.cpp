@@ -178,9 +178,9 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
   bool init_search = init;
   const int tolerance = ceil(1 / resolution_);
 
-  std::cout << "kino initialized"<<std::endl;
+  // std::cout << "kino initialized"<<std::endl;
   ros::Time t2 = ros::Time::now();
-  ROS_INFO("INIT TIME = %f",(t2-t1).toSec());
+  // ROS_INFO("INIT TIME = %f",(t2-t1).toSec());
 
   while (!open_set_.empty())
   {
@@ -457,11 +457,11 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
   }
 
   ros::Time t3 = ros::Time::now();
-  ROS_INFO("kino Astar TIME = %f",(t3-t2).toSec());
+  // ROS_INFO("kino Astar TIME = %f",(t3-t2).toSec());
 
-  cout << "open set empty, no path!" << endl;
-  cout << "use node num: " << use_node_num_ << endl;
-  cout << "iter num: " << iter_num_ << endl;
+  // cout << "open set empty, no path!" << endl;
+  // cout << "use node num: " << use_node_num_ << endl;
+  // cout << "iter num: " << iter_num_ << endl;
   return NO_PATH;
 }
 
