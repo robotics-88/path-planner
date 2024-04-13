@@ -150,7 +150,7 @@ public:
 				prev_start[2] = start_pt(2);
 
 				int status = kino_path_finder_->search(start_pt, start_vel, start_acc, goal_pt, goal_vel, true);
-				std::cout << "[kino replan]: startpoint kinodynamic search" << std::endl;
+				// std::cout << "[kino replan]: startpoint kinodynamic search" << std::endl;
 
 				if (status == KinodynamicAstar::NO_PATH) {
 					// std::cout << "[kino replan]: startpoint kinodynamic search fail!" << std::endl;
@@ -160,15 +160,15 @@ public:
 					status = kino_path_finder_->search(start_pt, start_vel, start_acc, goal_pt, goal_vel, false);
 
 					if (status == KinodynamicAstar::NO_PATH) {
-					std::cout << "[kino replan]: Can't find path." << std::endl;
-					return;
+						ROS_WARN_THROTTLE(1, "[kino replan]: Can't find path.");
+						return;
 					} else {
-					std::cout << "[kino replan]: retry search success." << std::endl;
-					firstplan_flag=false;
+						// std::cout << "[kino replan]: retry search success." << std::endl;
+						firstplan_flag=false;
 					}
 
 				} else {
-					std::cout << "[kino replan]: kinodynamic search success." << std::endl;
+					// std::cout << "[kino replan]: kinodynamic search success." << std::endl;
 					firstplan_flag=false;
 				}					
 				}else{
@@ -218,9 +218,8 @@ public:
 				prev_start[1] = replan_startpt(1);
 				prev_start[2] = replan_startpt(2);
 
-				ROS_INFO("StartPOINT IS %f,%f,%f",replan_startpt(0),replan_startpt(1),replan_startpt(2));
-
-				ROS_INFO("Before KINODYNAMIC SEARCH TIME: %f",(ros::Time::now() - t1).toSec());
+				// ROS_INFO("StartPOINT IS %f,%f,%f",replan_startpt(0),replan_startpt(1),replan_startpt(2));
+				// ROS_INFO("Before KINODYNAMIC SEARCH TIME: %f",(ros::Time::now() - t1).toSec());
 
 				int status = kino_path_finder_->search(replan_startpt, replan_startpt_vel, start_acc, goal_pt, goal_vel, true);
 
@@ -232,14 +231,14 @@ public:
 					status = kino_path_finder_->search(replan_startpt, replan_startpt_vel, start_acc, goal_pt, goal_vel, false);
 
 					if (status == KinodynamicAstar::NO_PATH) {
-					std::cout << "[kino replan]: Can't find path." << std::endl;
-					return;
+						ROS_WARN_THROTTLE(1, "[kino replan]: Can't find path.");
+						return;
 					} else {
-					std::cout << "[kino replan]: retry search success." << std::endl;
+						//std::cout << "[kino replan]: retry search success." << std::endl;
 					}
 
 				} else {
-					std::cout << "[kino replan]: kinodynamic search success." << std::endl;
+					// std::cout << "[kino replan]: kinodynamic search success." << std::endl;
 				}
 				}
 
@@ -250,7 +249,7 @@ public:
 
 				outfile<< t_search <<endl; 
 
-				ROS_INFO("KINODYNAMIC SEARCH TIME: %f,search_count = %d,search average time = %f",t_search,kino_path_finder_->search_count,kino_path_finder_->search_time_amount/kino_path_finder_->search_count);
+				// ROS_INFO("KINODYNAMIC SEARCH TIME: %f,search_count = %d,search average time = %f",t_search,kino_path_finder_->search_count,kino_path_finder_->search_time_amount/kino_path_finder_->search_count);
 
 				//compute transition from px4 local position to slam_map
 				Eigen::Quaterniond quat_odom(uav_odom.pose.pose.orientation.w, uav_odom.pose.pose.orientation.x, uav_odom.pose.pose.orientation.y, uav_odom.pose.pose.orientation.z);
