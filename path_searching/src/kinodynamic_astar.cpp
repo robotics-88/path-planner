@@ -137,7 +137,14 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
 {
 
   ros::Time t1 = ros::Time::now();
-  
+
+  // Get latest altitude limits
+  if (!ros::param::get("/path_planning_node/search/max_alt", max_alt_))
+    ROS_WARN("kino: cannot get max altitude param");
+
+  if (!ros::param::get("/path_planning_node/search/min_alt", min_alt_))
+    ROS_WARN("kino: cannot get min altitude param");
+
   start_vel_ = start_v;
   start_acc_ = start_a;
 
