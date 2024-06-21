@@ -71,9 +71,6 @@ catkin_package(
   INCLUDE_DIRS
 )
 
-# add_executable(imu_process src/IMU_Processing.cpp)
-# target_link_libraries(imu_process ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-
 add_executable(loam_feat_extract src/feature_extract.cpp)
 target_link_libraries(loam_feat_extract ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
@@ -86,3 +83,5 @@ target_include_directories(loam_laserMapping PRIVATE ${PYTHON_INCLUDE_DIRS})
 # target_link_libraries(kd_tree_test ${PCL_LIBRARIES})
 
 
+add_dependencies(loam_feat_extract ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(loam_laserMapping ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
