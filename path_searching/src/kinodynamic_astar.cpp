@@ -68,7 +68,7 @@ void KinodynamicAstar::setKdtree(const pcl::PointCloud<pcl::PointXYZ> cloud_inpu
   kdtreeLocalMap[tree_input_num].setInputCloud(cloud_filtered);//(*cloud_filtered).makeShared()
 
   ros::Time t2 = ros::Time::now();
-  outfile<< (t2-t1).toSec() <<endl;
+  // outfile<< (t2-t1).toSec() <<endl;
   
   // ROS_INFO("Pointcloud input to KDTREE used %f s, cloud size = %d",(t2-t1).toSec(),cloud_size);
 

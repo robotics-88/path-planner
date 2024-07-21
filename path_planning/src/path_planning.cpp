@@ -19,6 +19,8 @@
 #include <path_searching/kinodynamic_astar.h>
 #include <std_msgs/Int64.h>
 
+#include <bondcpp/bond.h>
+
 using std::unique_ptr;
 // Declear some global variables
 Eigen::Vector3d cur_pos;
@@ -35,12 +37,14 @@ ros::Publisher vel_pub;
 ros::Publisher acc_pub;
 ros::Publisher path_size_pub;
 
-ofstream outfile;
+// ofstream outfile;
 
 unique_ptr<KinodynamicAstar> kino_path_finder_;
 
 std::string map_frame_;
 std::string pose_topic_;
+std::string bond_id_received_;
+boost::shared_ptr<bond::Bond> bond_tm_;
 
 class planner {
 public:
@@ -247,7 +251,7 @@ public:
 
 				double t_search = (ros::Time::now() - t1).toSec();
 
-				outfile<< t_search <<endl; 
+				// outfile<< t_search <<endl; 
 
 				// ROS_INFO("KINODYNAMIC SEARCH TIME: %f,search_count = %d,search average time = %f",t_search,kino_path_finder_->search_count,kino_path_finder_->search_time_amount/kino_path_finder_->search_count);
 
@@ -447,6 +451,9 @@ int main(int argc, char **argv)
 	ros::NodeHandle relative_nh("~");
 	relative_nh.param<std::string>("search/map_frame", map_frame_, "map");
 	relative_nh.param<std::string>("search/pose_topic", pose_topic_, "/mavros/local_position/pose");
+	bond_tm_.reset(new bond::Bond("bond_pp_topic", "taskmgr_pp_id"));
+	bond_tm_->start();
+	std::cout << "STARTED BOND PM TO TM" << std::endl;
 
     //kino astar
     kino_path_finder_.reset(new KinodynamicAstar);
