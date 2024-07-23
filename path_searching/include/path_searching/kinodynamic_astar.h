@@ -58,6 +58,13 @@ class PathNode {
   }
   ~PathNode(){};
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  void profile(const std::string& function_name, std::function<void()> func) {
+      auto start = std::chrono::high_resolution_clock::now();
+      func();
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+      ROS_INFO_STREAM("Execution time of PathNode class " << function_name << ": " << duration.count() << " ms");
+  }
 };
 typedef PathNode* PathNodePtr;
 
@@ -65,6 +72,13 @@ class NodeComparator {
  public:
   bool operator()(PathNodePtr node1, PathNodePtr node2) {
     return node1->f_score > node2->f_score;
+  }
+  void profile(const std::string& function_name, std::function<void()> func) {
+      auto start = std::chrono::high_resolution_clock::now();
+      func();
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+      ROS_INFO_STREAM("Execution time of NodeComparator class " << function_name << ": " << duration.count() << " ms");
   }
 };
 
@@ -113,6 +127,14 @@ class NodeHashTable {
   void clear() {
     data_3d_.clear();
     data_4d_.clear();
+  }
+
+  void profile(const std::string& function_name, std::function<void()> func) {
+      auto start = std::chrono::high_resolution_clock::now();
+      func();
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+      ROS_INFO_STREAM("Execution time of NodeHashTable class " << function_name << ": " << duration.count() << " ms");
   }
 };
 
@@ -184,6 +206,14 @@ class KinodynamicAstar {
   ros::Publisher kd_ptcloud_pub_filtered,kd_ptcloud_pub_accumulated;
 
   ofstream outfile;
+
+  void profile(const std::string& function_name, std::function<void()> func) {
+      auto start = std::chrono::high_resolution_clock::now();
+      func();
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+      ROS_INFO_STREAM("Execution time of KinodynamicAstar class " << function_name << ": " << duration.count() << " ms");
+  }
 
  public:
   KinodynamicAstar(){};

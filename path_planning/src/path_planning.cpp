@@ -103,36 +103,43 @@ public:
 
 	void replan(void)
 	{
-		if(sqrt(pow((goal_pt(0)-start_pt(0)),2)+pow((goal_pt(1)-start_pt(1)),2)+pow((goal_pt(2)-start_pt(2)),2)) < 0.3)
-		{
-			return;
-		}
-		if(path_size_int64.data !=0 && set_start)
-		{
-			
-				for (std::size_t idx = 0; idx < path_size_int64.data; idx = idx + 40)
-				{
-					if(!replan_flag)
+		profile("path_planning replan", [&]() {
+
+			if(sqrt(pow((goal_pt(0)-start_pt(0)),2)+pow((goal_pt(1)-start_pt(1)),2)+pow((goal_pt(2)-start_pt(2)),2)) < 0.3)
+			{
+				// cout << "replan if\n";
+				return;
+			}
+			if(path_size_int64.data !=0 && set_start)
+			{
+					// cout << "replan second if\n";
+				
+					for (std::size_t idx = 0; idx < path_size_int64.data; idx = idx + 40)
 					{
-						ros::Time t1 = ros::Time::now();
-						replan_flag = !kino_path_finder_->isSafe(kino_nav_path.poses[idx].pose.position.x,kino_nav_path.poses[idx].pose.position.y,kino_nav_path.poses[idx].pose.position.z);
-						ros::Time t2 = ros::Time::now();
-						// ROS_INFO("CHECK one position time : %f",(t2-t1).toSec());
-						// std::cout << "Replan!" << std::endl;
+						if(!replan_flag)
+						{
+							ros::Time t1 = ros::Time::now();
+							replan_flag = !kino_path_finder_->isSafe(kino_nav_path.poses[idx].pose.position.x,kino_nav_path.poses[idx].pose.position.y,kino_nav_path.poses[idx].pose.position.z);
+							ros::Time t2 = ros::Time::now();
+							// ROS_INFO("CHECK one position time : %f",(t2-t1).toSec());
+							// std::cout << "Replan!" << std::endl;
+						}
+						else
+						{	break;
+						}
 					}
-					else
-					{	break;
-					}
-				}
-				if(replan_flag)
-					plan();
-				else{}
-					// std::cout << "Replanning not required" << std::endl;
-		}
+					if(replan_flag)
+						plan();
+					else{}
+						// std::cout << "Replanning not required" << std::endl;
+			}
+		});
 	}
 
 	void plan(void)
 	{
+		profile("path_planning plan", [&]() {
+		
 				//kinodynamic path searching
 
 				ros::Time t1 = ros::Time::now();
@@ -145,101 +152,102 @@ public:
 
 				if(firstplan_flag == true || replan_time_index==-1 )// || (replan_time_index==(path_size_int64.data-1))
 				{
-				prev_start[0] = start_pt(0);
-				prev_start[1] = start_pt(1);
-				prev_start[2] = start_pt(2);
+					prev_start[0] = start_pt(0);
+					prev_start[1] = start_pt(1);
+					prev_start[2] = start_pt(2);
 
-				int status = kino_path_finder_->search(start_pt, start_vel, start_acc, goal_pt, goal_vel, true);
-				// std::cout << "[kino replan]: startpoint kinodynamic search" << std::endl;
-
-				if (status == KinodynamicAstar::NO_PATH) {
-					// std::cout << "[kino replan]: startpoint kinodynamic search fail!" << std::endl;
-
-					// retry searching with discontinuous initial state
-					kino_path_finder_->reset();
-					status = kino_path_finder_->search(start_pt, start_vel, start_acc, goal_pt, goal_vel, false);
+					int status = kino_path_finder_->search(start_pt, start_vel, start_acc, goal_pt, goal_vel, true);
+					// std::cout << "[kino replan]: startpoint kinodynamic search" << std::endl;
 
 					if (status == KinodynamicAstar::NO_PATH) {
-						ROS_WARN_THROTTLE(1, "[kino replan]: Can't find path.");
-						return;
+
+						// retry searching with discontinuous initial state
+						kino_path_finder_->reset();
+						
+						status = kino_path_finder_->search(start_pt, start_vel, start_acc, goal_pt, goal_vel, false);
+
+						if (status == KinodynamicAstar::NO_PATH) {
+							// ROS_WARN_THROTTLE(1, "[kino replan]: Can't find path.");
+							cout << "[kino replan]: Can't find path.\n";
+							return;
+						} else {
+							std::cout << "[kino replan]: retry search success." << std::endl;
+							firstplan_flag=false;
+						}
+
 					} else {
-						// std::cout << "[kino replan]: retry search success." << std::endl;
+						std::cout << "[kino replan]: kinodynamic search success." << std::endl;
 						firstplan_flag=false;
+					}					
+				}else{
+
+					Eigen::Vector3d replan_startpt;
+					Eigen::Vector3d replan_startpt_vel(0,0,0);
+
+					if(fabs(last_replan_time_index - replan_time_index)<10)
+					{
+						return;
 					}
 
-				} else {
-					// std::cout << "[kino replan]: kinodynamic search success." << std::endl;
-					firstplan_flag=false;
-				}					
-				}else{
+					int used_time_index = replan_time_index + 3;
+					last_replan_time_index = replan_time_index;
 
-				Eigen::Vector3d replan_startpt;
-				Eigen::Vector3d replan_startpt_vel(0,0,0);
+					//fix overflow bug
+					if(used_time_index > path_size_int64.data-5)
+					{
+						used_time_index = replan_time_index;
+					}
 
-				if(fabs(last_replan_time_index - replan_time_index)<10)
-				{
-					return;
-				}
+					replan_startpt(0) = kino_nav_path.poses[used_time_index].pose.position.x;
+					replan_startpt(1) = kino_nav_path.poses[used_time_index].pose.position.y;
+					replan_startpt(2) = kino_nav_path.poses[used_time_index].pose.position.z;
 
-				int used_time_index = replan_time_index + 3;
-				last_replan_time_index = replan_time_index;
+					int vel_horizon = 2;
+					if(used_time_index + vel_horizon >= path_size_int64.data-1)
+					{
+					replan_startpt_vel(0) = (kino_nav_path.poses[used_time_index].pose.position.x - kino_nav_path.poses[used_time_index-vel_horizon].pose.position.x)/(0.01*vel_horizon);
+					replan_startpt_vel(1) = (kino_nav_path.poses[used_time_index].pose.position.y - kino_nav_path.poses[used_time_index-vel_horizon].pose.position.y)/(0.01*vel_horizon);
+					replan_startpt_vel(2) = (kino_nav_path.poses[used_time_index].pose.position.z - kino_nav_path.poses[used_time_index-vel_horizon].pose.position.z)/(0.01*vel_horizon);
 
-				//fix overflow bug
-				if(used_time_index > path_size_int64.data-5)
-				{
-					used_time_index = replan_time_index;
-				}
+					}else if(used_time_index - vel_horizon < 0)
+					{
+					replan_startpt_vel(0) = (kino_nav_path.poses[used_time_index+vel_horizon].pose.position.x - kino_nav_path.poses[used_time_index].pose.position.x)/(0.01*vel_horizon);
+					replan_startpt_vel(1) = (kino_nav_path.poses[used_time_index+vel_horizon].pose.position.y - kino_nav_path.poses[used_time_index].pose.position.y)/(0.01*vel_horizon);
+					replan_startpt_vel(2) = (kino_nav_path.poses[used_time_index+vel_horizon].pose.position.z - kino_nav_path.poses[used_time_index].pose.position.z)/(0.01*vel_horizon);
 
-				replan_startpt(0) = kino_nav_path.poses[used_time_index].pose.position.x;
-				replan_startpt(1) = kino_nav_path.poses[used_time_index].pose.position.y;
-				replan_startpt(2) = kino_nav_path.poses[used_time_index].pose.position.z;
+					}else{
+					replan_startpt_vel(0) = (kino_nav_path.poses[used_time_index+vel_horizon].pose.position.x - kino_nav_path.poses[used_time_index-vel_horizon].pose.position.x)/(0.01*2*vel_horizon);
+					replan_startpt_vel(1) = (kino_nav_path.poses[used_time_index+vel_horizon].pose.position.y - kino_nav_path.poses[used_time_index-vel_horizon].pose.position.y)/(0.01*2*vel_horizon);
+					replan_startpt_vel(2) = (kino_nav_path.poses[used_time_index+vel_horizon].pose.position.z - kino_nav_path.poses[used_time_index-vel_horizon].pose.position.z)/(0.01*2*vel_horizon);
 
-				int vel_horizon = 2;
-				if(used_time_index + vel_horizon >= path_size_int64.data-1)
-				{
-				replan_startpt_vel(0) = (kino_nav_path.poses[used_time_index].pose.position.x - kino_nav_path.poses[used_time_index-vel_horizon].pose.position.x)/(0.01*vel_horizon);
-				replan_startpt_vel(1) = (kino_nav_path.poses[used_time_index].pose.position.y - kino_nav_path.poses[used_time_index-vel_horizon].pose.position.y)/(0.01*vel_horizon);
-				replan_startpt_vel(2) = (kino_nav_path.poses[used_time_index].pose.position.z - kino_nav_path.poses[used_time_index-vel_horizon].pose.position.z)/(0.01*vel_horizon);
+					}
+					
+					prev_start[0] = replan_startpt(0);
+					prev_start[1] = replan_startpt(1);
+					prev_start[2] = replan_startpt(2);
 
-				}else if(used_time_index - vel_horizon < 0)
-				{
-				replan_startpt_vel(0) = (kino_nav_path.poses[used_time_index+vel_horizon].pose.position.x - kino_nav_path.poses[used_time_index].pose.position.x)/(0.01*vel_horizon);
-				replan_startpt_vel(1) = (kino_nav_path.poses[used_time_index+vel_horizon].pose.position.y - kino_nav_path.poses[used_time_index].pose.position.y)/(0.01*vel_horizon);
-				replan_startpt_vel(2) = (kino_nav_path.poses[used_time_index+vel_horizon].pose.position.z - kino_nav_path.poses[used_time_index].pose.position.z)/(0.01*vel_horizon);
+					ROS_INFO("StartPOINT IS %f,%f,%f",replan_startpt(0),replan_startpt(1),replan_startpt(2));
+					ROS_INFO("Before KINODYNAMIC SEARCH TIME: %f",(ros::Time::now() - t1).toSec());
 
-				}else{
-				replan_startpt_vel(0) = (kino_nav_path.poses[used_time_index+vel_horizon].pose.position.x - kino_nav_path.poses[used_time_index-vel_horizon].pose.position.x)/(0.01*2*vel_horizon);
-				replan_startpt_vel(1) = (kino_nav_path.poses[used_time_index+vel_horizon].pose.position.y - kino_nav_path.poses[used_time_index-vel_horizon].pose.position.y)/(0.01*2*vel_horizon);
-				replan_startpt_vel(2) = (kino_nav_path.poses[used_time_index+vel_horizon].pose.position.z - kino_nav_path.poses[used_time_index-vel_horizon].pose.position.z)/(0.01*2*vel_horizon);
-
-				}
-				
-				prev_start[0] = replan_startpt(0);
-				prev_start[1] = replan_startpt(1);
-				prev_start[2] = replan_startpt(2);
-
-				// ROS_INFO("StartPOINT IS %f,%f,%f",replan_startpt(0),replan_startpt(1),replan_startpt(2));
-				// ROS_INFO("Before KINODYNAMIC SEARCH TIME: %f",(ros::Time::now() - t1).toSec());
-
-				int status = kino_path_finder_->search(replan_startpt, replan_startpt_vel, start_acc, goal_pt, goal_vel, true);
-
-				if (status == KinodynamicAstar::NO_PATH) {
-					// std::cout << "[kino replan]: replan kinodynamic search fail!" << std::endl;
-
-					// retry searching with discontinuous initial state
-					kino_path_finder_->reset();
-					status = kino_path_finder_->search(replan_startpt, replan_startpt_vel, start_acc, goal_pt, goal_vel, false);
+					int status = kino_path_finder_->search(replan_startpt, replan_startpt_vel, start_acc, goal_pt, goal_vel, true);
 
 					if (status == KinodynamicAstar::NO_PATH) {
-						ROS_WARN_THROTTLE(1, "[kino replan]: Can't find path.");
-						return;
-					} else {
-						//std::cout << "[kino replan]: retry search success." << std::endl;
-					}
+						// std::cout << "[kino replan]: replan kinodynamic search fail!" << std::endl;
 
-				} else {
-					// std::cout << "[kino replan]: kinodynamic search success." << std::endl;
-				}
+						// retry searching with discontinuous initial state
+						kino_path_finder_->reset();
+						status = kino_path_finder_->search(replan_startpt, replan_startpt_vel, start_acc, goal_pt, goal_vel, false);
+
+						if (status == KinodynamicAstar::NO_PATH) {
+							ROS_WARN_THROTTLE(1, "[kino replan]: Can't find path.");
+							return;
+						} else {
+							std::cout << "[kino replan]: retry search success." << std::endl;
+						}
+
+					} else {
+						std::cout << "[kino replan]: kinodynamic search success." << std::endl;
+					}
 				}
 
 				std::vector<Eigen::Vector3d> kino_path;
@@ -286,6 +294,7 @@ public:
 
 				for(int i = 0; i<kino_path.size();i++)
 				{
+					// cout << "inside for loop\n";
 					kino_marker.header.frame_id = map_frame_;
 					kino_marker.header.stamp = ros::Time();
 					kino_marker.ns = "kino_path";
@@ -340,6 +349,7 @@ public:
 
 				// ROS_INFO("KINODYNAMIC all TIME: %f",t_all);
 				replan_flag = false;
+		});
 	}
 private:
 
@@ -370,34 +380,53 @@ private:
 	int replan_time_index = -1;
 	int last_replan_time_index = -1;
 	bool firstplan_flag = true;
+
+	void profile(const std::string& function_name, std::function<void()> func) {
+		auto start = std::chrono::high_resolution_clock::now();
+		func();
+		auto stop = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+		ROS_INFO_STREAM("Execution time of " << function_name << ": " << duration.count() << " ms");
+	}
 };
+
+void profile(const std::string& function_name, std::function<void()> func) {
+	auto start = std::chrono::high_resolution_clock::now();
+	func();
+	auto stop = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+	ROS_INFO_STREAM("Execution time of " << function_name << ": " << duration.count() << " ms");
+}
 
 void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr &msg, planner* planner_ptr)
 {
-	pcl::PointCloud<pcl::PointXYZ> cloud_input;
-  	pcl::fromROSMsg(*msg, (cloud_input));
-	// ROS_INFO("FROM ROS TO PCLOUD SUCESS");
+	// profile("path_planning cloudCallback", [&]() {
+
+		pcl::PointCloud<pcl::PointXYZ> cloud_input;
+		pcl::fromROSMsg(*msg, (cloud_input));
+		// ROS_INFO("FROM ROS TO PCLOUD SUCESS");
 
 
-	//only input point clouds in 20 meters to reduce computation
-  	ros::Time t1 = ros::Time::now();
-	pcl::PointCloud<pcl::PointXYZ> cloud_cutoff;
-	// ROS_INFO("FROM ROS TO PCLOUD Size is %d",int(cloud_input.size()));
-	for (size_t i = 0; i < cloud_input.points.size(); i = i+2)
-  	{
-    if(fabs(cloud_input.points[i].x - cur_pos(0))>20 || fabs(cloud_input.points[i].y - cur_pos(1))>20 || fabs(cloud_input.points[i].z - cur_pos(2))>20)
-	{
-		continue;
-	}else{
-		cloud_cutoff.push_back(cloud_input.points[i]);
-	}
-  	}
+		//only input point clouds in 20 meters to reduce computation
+		ros::Time t1 = ros::Time::now();
+		pcl::PointCloud<pcl::PointXYZ> cloud_cutoff;
+		// ROS_INFO("FROM ROS TO PCLOUD Size is %d",int(cloud_input.size()));
+		for (size_t i = 0; i < cloud_input.points.size(); i = i+2)
+		{
+		if(fabs(cloud_input.points[i].x - cur_pos(0))>20 || fabs(cloud_input.points[i].y - cur_pos(1))>20 || fabs(cloud_input.points[i].z - cur_pos(2))>20)
+		{
+			continue;
+		}else{
+			cloud_cutoff.push_back(cloud_input.points[i]);
+		}
+		}
 
-	ros::Time t2 = ros::Time::now();
- 	// ROS_INFO("Pointcloud CUTOFF used %f s",(t2-t1).toSec());
-	
-	kino_path_finder_->setKdtree(cloud_cutoff);
-	planner_ptr->replan();
+		ros::Time t2 = ros::Time::now();
+		// ROS_INFO("Pointcloud CUTOFF used %f s",(t2-t1).toSec());
+		
+		kino_path_finder_->setKdtree(cloud_cutoff);
+		planner_ptr->replan();
+	// });
 }
 
 nav_msgs::Odometry uav_odometry;
@@ -430,11 +459,14 @@ void goalCb(const geometry_msgs::PoseStamped::ConstPtr &msg, planner* planner_pt
 
 void timeindexCallBack(const std_msgs::Int64::ConstPtr &msg, planner* planner_ptr)
 {
-	std_msgs::Int64 time_index_int64;
-	int time_index=0;
-	time_index_int64 = *msg;
-    time_index = time_index_int64.data;
-	planner_ptr->update_timeindex(time_index);
+	profile("path_planning timeindexCallBack", [&]() {
+
+		std_msgs::Int64 time_index_int64;
+		int time_index=0;
+		time_index_int64 = *msg;
+		time_index = time_index_int64.data;
+		planner_ptr->update_timeindex(time_index);
+	});
 }
 
 int main(int argc, char **argv)
