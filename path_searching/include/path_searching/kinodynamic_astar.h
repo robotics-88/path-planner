@@ -63,7 +63,9 @@ class PathNode {
       func();
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-      ROS_INFO_STREAM("Execution time of PathNode class " << function_name << ": " << duration.count() << " ms");
+      if(duration.count() > 500) {
+          ROS_INFO_STREAM("Execution time of " << function_name << ": " << duration.count() << " ms");
+      }
   }
 };
 typedef PathNode* PathNodePtr;
@@ -78,7 +80,9 @@ class NodeComparator {
       func();
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-      ROS_INFO_STREAM("Execution time of NodeComparator class " << function_name << ": " << duration.count() << " ms");
+      if(duration.count() > 500) {
+          ROS_INFO_STREAM("Execution time of " << function_name << ": " << duration.count() << " ms");
+      }
   }
 };
 
@@ -134,7 +138,9 @@ class NodeHashTable {
       func();
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-      ROS_INFO_STREAM("Execution time of NodeHashTable class " << function_name << ": " << duration.count() << " ms");
+      if(duration.count() > 500) {
+          ROS_INFO_STREAM("Execution time of " << function_name << ": " << duration.count() << " ms");
+      }
   }
 };
 
@@ -212,7 +218,9 @@ class KinodynamicAstar {
       func();
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-      ROS_INFO_STREAM("Execution time of KinodynamicAstar class " << function_name << ": " << duration.count() << " ms");
+      if(duration.count() > 500) {
+          ROS_INFO_STREAM("Execution time of " << function_name << ": " << duration.count() << " ms");
+      }
   }
 
  public:

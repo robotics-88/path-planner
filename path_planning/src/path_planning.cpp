@@ -386,7 +386,9 @@ private:
 		func();
 		auto stop = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-		ROS_INFO_STREAM("Execution time of " << function_name << ": " << duration.count() << " ms");
+		if(duration.count() > 500) {
+                ROS_INFO_STREAM("Execution time of " << function_name << ": " << duration.count() << " ms");
+            }
 	}
 };
 
@@ -395,7 +397,9 @@ void profile(const std::string& function_name, std::function<void()> func) {
 	func();
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-	ROS_INFO_STREAM("Execution time of " << function_name << ": " << duration.count() << " ms");
+	if(duration.count() > 500) {
+		ROS_INFO_STREAM("Execution time of " << function_name << ": " << duration.count() << " ms");
+	}
 }
 
 void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr &msg, planner* planner_ptr)
