@@ -125,7 +125,7 @@ bool KinodynamicAstar::isSafe(double x, double y,double z){
 
   }
   ros::Time t2 = ros::Time::now();
-  // ROS_INFO("One search in nearest KDTREE used %f s, square distance = %f",(t2-t1).toSec(),pointNKNSquaredDistance[0]);
+  ROS_INFO("One search in nearest KDTREE used %f s, square distance = %f",(t2-t1).toSec(),pointNKNSquaredDistance[0]);
   search_time_amount = (t2-t1).toSec() + search_time_amount;
   // }
 

@@ -117,7 +117,7 @@ public:
 						ros::Time t1 = ros::Time::now();
 						replan_flag = !kino_path_finder_->isSafe(kino_nav_path.poses[idx].pose.position.x,kino_nav_path.poses[idx].pose.position.y,kino_nav_path.poses[idx].pose.position.z);
 						ros::Time t2 = ros::Time::now();
-						// ROS_INFO("CHECK one position time : %f",(t2-t1).toSec());
+						ROS_INFO("CHECK one position time : %f",(t2-t1).toSec());
 						// std::cout << "Replan!" << std::endl;
 					}
 					else
@@ -219,7 +219,7 @@ public:
 				prev_start[2] = replan_startpt(2);
 
 				// ROS_INFO("StartPOINT IS %f,%f,%f",replan_startpt(0),replan_startpt(1),replan_startpt(2));
-				// ROS_INFO("Before KINODYNAMIC SEARCH TIME: %f",(ros::Time::now() - t1).toSec());
+				ROS_INFO("Before KINODYNAMIC SEARCH TIME: %f",(ros::Time::now() - t1).toSec());
 
 				int status = kino_path_finder_->search(replan_startpt, replan_startpt_vel, start_acc, goal_pt, goal_vel, true);
 
@@ -338,7 +338,7 @@ public:
 
 				double t_all = (ros::Time::now() - t1).toSec();
 
-				// ROS_INFO("KINODYNAMIC all TIME: %f",t_all);
+				ROS_INFO("KINODYNAMIC all TIME: %f",t_all);
 				replan_flag = false;
 	}
 private:
