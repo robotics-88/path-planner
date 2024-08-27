@@ -36,6 +36,9 @@ ament_target_dependencies(path_searching
   pcl_ros
 )
 
+ament_export_include_directories(include)
+ament_export_libraries(path_searching)
+
 install(DIRECTORY include/
   DESTINATION include
 )

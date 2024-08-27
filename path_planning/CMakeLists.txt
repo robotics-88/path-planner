@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.5)
 project(path_planning)
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
 find_package(Eigen3 REQUIRED)
@@ -17,34 +20,24 @@ find_package(trajectory_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 
-find_package(pcl_ros REQUIRED) #TODO fix hack
-
 include_directories(
-  ${PROJECT_SOURCE_DIR}/../path_searching/include # TODO fix this hack
-
   include
   ${PCL_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS} 
 )
 
-add_library(${PROJECT_NAME} SHARED
-  src/path_planning.cpp
-)
+add_executable(${PROJECT_NAME}_node src/path_planning.cpp)
 
-ament_target_dependencies(${PROJECT_NAME}
+ament_target_dependencies(${PROJECT_NAME}_node
   rclcpp
+  path_searching
   visualization_msgs
   trajectory_msgs
   nav_msgs
   sensor_msgs
   geometry_msgs
-  path_searching
-  pcl_ros # part of hack
+  pcl_ros
 )
-
-add_executable(${PROJECT_NAME}_node src/path_planning.cpp)
-
-target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
 
 install(TARGETS
   ${PROJECT_NAME}_node

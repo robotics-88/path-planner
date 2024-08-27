@@ -370,7 +370,10 @@ private:
 	bool firstplan_flag = true;
 };
 
-void cloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg, planner* planner_ptr)
+// This is gross formatting but this thing was built gross-ly and this works. TODO fix all the bad code practice here
+std::shared_ptr<planner> planner_ptr;
+
+void cloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
 {
 	pcl::PointCloud<pcl::PointXYZ> cloud_input;
   	pcl::fromROSMsg(*msg, (cloud_input));
@@ -399,18 +402,18 @@ void cloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg, planner* 
 }
 
 nav_msgs::msg::Odometry uav_odometry;
-void odomCb(const nav_msgs::msg::Odometry::SharedPtr msg, planner* planner_ptr)
+void odomCb(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
 	// RCLCPP_INFO("RECEIVED ODOMETRY"); 
 	uav_odometry = *msg;
 }
 
-void startCb(const geometry_msgs::msg::PointStamped::SharedPtr msg, planner* planner_ptr)
+void startCb(const geometry_msgs::msg::PointStamped::SharedPtr msg)
 {
 	planner_ptr->init_start();
 }
 
-void poseCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg, planner* planner_ptr)
+void poseCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
 	planner_ptr->setlocalpose(*msg);
 
@@ -421,12 +424,12 @@ void poseCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg, planner* plann
 	cur_pos(2) = msg->pose.position.z;
 }
 
-void goalCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg, planner* planner_ptr)
+void goalCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
 	planner_ptr->setGoal(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
 }
 
-void timeindexCallBack(const std_msgs::msg::Int64::SharedPtr msg, planner* planner_ptr)
+void timeindexCallBack(const std_msgs::msg::Int64::SharedPtr msg)
 {
 	std_msgs::msg::Int64 time_index_int64;
 	int time_index=0;
@@ -440,7 +443,7 @@ int main(int argc, char **argv)
 	rclcpp::init(argc, argv);
 	node = rclcpp::Node::make_shared("path_planner");
 
-	planner planner_object;
+	planner_ptr = std::make_shared<planner>();
 
 	node->declare_parameter<std::string>("search/map_frame", map_frame_);
 	node->declare_parameter<std::string>("search/pose_topic", pose_topic_);
@@ -455,7 +458,7 @@ int main(int argc, char **argv)
 
 	node->declare_parameter<std::string>("/search/cloud", cloud_topic);
 
-	// auto odom_sub = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/odometry/out", 1, std::bind(&odomCb, _1, &planner_object));
+	auto odom_sub = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/odometry/out", 1, std::bind(&odomCb, _1));
 	// auto pointcloud_sub = node->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic, 1, std::bind(&cloudCallback, _1, &planner_object));
 	// auto pose_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>(pose_topic_, 100, std::bind(&poseCb, _1, &planner_object));
 	// auto goal_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>("/goal", 10000, std::bind(&goalCb, _1, &planner_object));
