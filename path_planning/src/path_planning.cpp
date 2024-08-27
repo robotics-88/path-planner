@@ -1,39 +1,37 @@
 
-#include "ros/ros.h"
-// #include <octomap_msgs/Octomap.h>
-// #include <octomap_msgs/conversions.h>
-// #include <octomap_ros/conversions.h>
-// #include <octomap/octomap.h>
-#include <message_filters/subscriber.h>
-#include "visualization_msgs/Marker.h"
-#include <trajectory_msgs/MultiDOFJointTrajectory.h>
-#include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <geometry_msgs/Pose.h>
-#include <geometry_msgs/PointStamped.h>
+#include "rclcpp/rclcpp.hpp"
+#include "visualization_msgs/msg/marker.hpp"
+#include "trajectory_msgs/msg/multi_dof_joint_trajectory.hpp"
+#include "nav_msgs/msg/odometry.hpp"
+#include "nav_msgs/msg/path.hpp"
+#include "sensor_msgs/msg/point_cloud2.hpp"
+#include "geometry_msgs/msg/pose.hpp"
+#include "geometry_msgs/msg/point_stamped.hpp"
+#include "std_msgs/msg/int64.hpp"
 
 #include <iostream>
 #include <fstream>
 
-#include <path_searching/kinodynamic_astar.h>
-#include <std_msgs/Int64.h>
+#include "path_searching/kinodynamic_astar.h"
 
 using std::unique_ptr;
+using std::placeholders::_1;
 // Declear some global variables
 Eigen::Vector3d cur_pos;
 
-//ROS publishers
-ros::Publisher vis_pub;
-ros::Publisher traj_pub;
-ros::Publisher Bspline_pub;
-ros::Publisher kino_pub;
-ros::Publisher kino_path_pub;
+std::shared_ptr<rclcpp::Node> node;
 
-ros::Publisher pos_pub;
-ros::Publisher vel_pub;
-ros::Publisher acc_pub;
-ros::Publisher path_size_pub;
+//ROS publishers
+rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr vis_pub;
+rclcpp::Publisher<trajectory_msgs::msg::MultiDOFJointTrajectory>::SharedPtr traj_pub;
+rclcpp::Publisher<trajectory_msgs::msg::MultiDOFJointTrajectory>::SharedPtr Bspline_pub;
+rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr kino_pub;
+rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr kino_path_pub;
+
+rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pos_pub;
+rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr vel_pub;
+rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr acc_pub;
+rclcpp::Publisher<std_msgs::msg::Int64>::SharedPtr path_size_pub;
 
 ofstream outfile;
 
@@ -52,7 +50,7 @@ public:
 		set_start = true;		
 	}
 
-	void setStart(double x, double y, double z, double vx, double vy, double vz,nav_msgs::Odometry odm)
+	void setStart(double x, double y, double z, double vx, double vy, double vz,nav_msgs::msg::Odometry odm)
 	{
 		start_pt(0) = x;
 		start_pt(1) = y;
@@ -65,7 +63,7 @@ public:
 		uav_odom = odm;
 	}
 
-	void setlocalpose(geometry_msgs::PoseStamped pose)
+	void setlocalpose(geometry_msgs::msg::PoseStamped pose)
 	{
 		local_pose = pose;
 	}
@@ -88,7 +86,7 @@ public:
 	void update_timeindex(int time_index)
 	{
 		replan_time_index = time_index;
-		ROS_INFO("replan time index IS %d",replan_time_index);
+		RCLCPP_INFO(node->get_logger(), "replan time index IS %d", replan_time_index);
 	}
 
 	// Constructor
@@ -114,10 +112,10 @@ public:
 				{
 					if(!replan_flag)
 					{
-						ros::Time t1 = ros::Time::now();
+						rclcpp::Time t1 = node->get_clock()->now();
 						replan_flag = !kino_path_finder_->isSafe(kino_nav_path.poses[idx].pose.position.x,kino_nav_path.poses[idx].pose.position.y,kino_nav_path.poses[idx].pose.position.z);
-						ros::Time t2 = ros::Time::now();
-						// ROS_INFO("CHECK one position time : %f",(t2-t1).toSec());
+						rclcpp::Time t2 = node->get_clock()->now();
+						// RCLCPP_INFO("CHECK one position time : %f",(t2-t1).toSec());
 						// std::cout << "Replan!" << std::endl;
 					}
 					else
@@ -135,7 +133,7 @@ public:
 	{
 				//kinodynamic path searching
 
-				ros::Time t1 = ros::Time::now();
+				rclcpp::Time t1 = node->get_clock()->now();
 
 				kino_path_finder_->reset();
 				
@@ -160,7 +158,7 @@ public:
 					status = kino_path_finder_->search(start_pt, start_vel, start_acc, goal_pt, goal_vel, false);
 
 					if (status == KinodynamicAstar::NO_PATH) {
-						ROS_WARN_THROTTLE(1, "[kino replan]: Can't find path.");
+						RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "[kino replan]: Can't find path.");
 						return;
 					} else {
 						// std::cout << "[kino replan]: retry search success." << std::endl;
@@ -218,8 +216,8 @@ public:
 				prev_start[1] = replan_startpt(1);
 				prev_start[2] = replan_startpt(2);
 
-				// ROS_INFO("StartPOINT IS %f,%f,%f",replan_startpt(0),replan_startpt(1),replan_startpt(2));
-				// ROS_INFO("Before KINODYNAMIC SEARCH TIME: %f",(ros::Time::now() - t1).toSec());
+				// RCLCPP_INFO("StartPOINT IS %f,%f,%f",replan_startpt(0),replan_startpt(1),replan_startpt(2));
+				// RCLCPP_INFO("Before KINODYNAMIC SEARCH TIME: %f",(node->get_clock()->now() - t1).toSec());
 
 				int status = kino_path_finder_->search(replan_startpt, replan_startpt_vel, start_acc, goal_pt, goal_vel, true);
 
@@ -231,7 +229,7 @@ public:
 					status = kino_path_finder_->search(replan_startpt, replan_startpt_vel, start_acc, goal_pt, goal_vel, false);
 
 					if (status == KinodynamicAstar::NO_PATH) {
-						ROS_WARN_THROTTLE(1, "[kino replan]: Can't find path.");
+						RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "[kino replan]: Can't find path.");
 						return;
 					} else {
 						//std::cout << "[kino replan]: retry search success." << std::endl;
@@ -245,11 +243,11 @@ public:
 				std::vector<Eigen::Vector3d> kino_path;
 				kino_path = kino_path_finder_->getKinoTraj(0.01);
 
-				double t_search = (ros::Time::now() - t1).toSec();
+				double t_search = (node->get_clock()->now() - t1).seconds();
 
 				outfile<< t_search <<endl; 
 
-				// ROS_INFO("KINODYNAMIC SEARCH TIME: %f,search_count = %d,search average time = %f",t_search,kino_path_finder_->search_count,kino_path_finder_->search_time_amount/kino_path_finder_->search_count);
+				// RCLCPP_INFO("KINODYNAMIC SEARCH TIME: %f,search_count = %d,search average time = %f",t_search,kino_path_finder_->search_count,kino_path_finder_->search_time_amount/kino_path_finder_->search_count);
 
 				//compute transition from px4 local position to slam_map
 				Eigen::Quaterniond quat_odom(uav_odom.pose.pose.orientation.w, uav_odom.pose.pose.orientation.x, uav_odom.pose.pose.orientation.y, uav_odom.pose.pose.orientation.z);
@@ -270,15 +268,15 @@ public:
 				Eigen::Matrix3d rotation_odom2px4;
 				rotation_odom2px4 = rotation_px42odom.transpose();
 
-				visualization_msgs::Marker kino_marker;
-				kino_marker.action = visualization_msgs::Marker::DELETEALL;
-				kino_pub.publish(kino_marker);
+				visualization_msgs::msg::Marker kino_marker;
+				kino_marker.action = visualization_msgs::msg::Marker::DELETEALL;
+				kino_pub->publish(kino_marker);
 
 				kino_nav_path.poses.clear();
 				kino_nav_path_px4.poses.clear();
-				geometry_msgs::PoseStamped this_pose_stamped;
-				geometry_msgs::PoseStamped this_pose_stamped_px4;
-				geometry_msgs::Quaternion standard_quaternion;
+				geometry_msgs::msg::PoseStamped this_pose_stamped;
+				geometry_msgs::msg::PoseStamped this_pose_stamped_px4;
+				geometry_msgs::msg::Quaternion standard_quaternion;
 				standard_quaternion.x = 0;
 				standard_quaternion.y = 0;
 				standard_quaternion.z = 0;
@@ -287,16 +285,16 @@ public:
 				for(int i = 0; i<kino_path.size();i++)
 				{
 					kino_marker.header.frame_id = map_frame_;
-					kino_marker.header.stamp = ros::Time();
+					kino_marker.header.stamp = rclcpp::Time();
 					kino_marker.ns = "kino_path";
 					kino_marker.id = i;
-					kino_marker.type = visualization_msgs::Marker::CUBE;
-					kino_marker.action = visualization_msgs::Marker::ADD;
+					kino_marker.type = visualization_msgs::msg::Marker::CUBE;
+					kino_marker.action = visualization_msgs::msg::Marker::ADD;
 					kino_marker.pose.position.x = kino_path[i](0);
 					kino_marker.pose.position.y = kino_path[i](1);
 					kino_marker.pose.position.z = kino_path[i](2);
 
-					// ROS_INFO("i = %d,pos = %f,%f,%f",i,kino_path[i](0),kino_path[i](1),kino_path[i](2));
+					// RCLCPP_INFO("i = %d,pos = %f,%f,%f",i,kino_path[i](0),kino_path[i](1),kino_path[i](2));
 
 					kino_marker.scale.x = 0.15;
 					kino_marker.scale.y = 0.15;
@@ -305,7 +303,7 @@ public:
 					kino_marker.color.r = 0.0;
 					kino_marker.color.g = 0.0;
 					kino_marker.color.b = 1.0;
-					kino_pub.publish(kino_marker);
+					kino_pub->publish(kino_marker);
 
 					Eigen::Vector3d kino_pathpose_px4 = rotation_px42odom * kino_path[i] + T_px42odom;
 
@@ -313,7 +311,7 @@ public:
 					this_pose_stamped.pose.position.y = kino_path[i](1);
 					this_pose_stamped.pose.position.z = kino_path[i](2);
 					this_pose_stamped.header.frame_id = map_frame_;
-					this_pose_stamped.header.stamp = ros::Time::now();
+					this_pose_stamped.header.stamp = node->get_clock()->now();
 					this_pose_stamped_px4.pose.position.x = kino_pathpose_px4(0);
 					this_pose_stamped_px4.pose.position.y = kino_pathpose_px4(1);
 					this_pose_stamped_px4.pose.position.z = kino_pathpose_px4(2);
@@ -324,21 +322,21 @@ public:
 				}
 
 				kino_nav_path.header.frame_id = map_frame_;
-				kino_nav_path.header.stamp = ros::Time::now();
-				kino_path_pub.publish(kino_nav_path);
+				kino_nav_path.header.stamp = node->get_clock()->now();
+				kino_path_pub->publish(kino_nav_path);
 
 				kino_nav_path_px4.header.frame_id = map_frame_;
-				kino_nav_path_px4.header.stamp = ros::Time::now();
-				pos_pub.publish(kino_nav_path);
-				// vel_pub.publish(minjerk_velocity);
-				// acc_pub.publish(minjerk_accel);
+				kino_nav_path_px4.header.stamp = node->get_clock()->now();
+				pos_pub->publish(kino_nav_path);
+				// vel_pub->publish(minjerk_velocity);
+				// acc_pub->publish(minjerk_accel);
 
     			path_size_int64.data = kino_path.size()+1;
-				path_size_pub.publish(path_size_int64);
+				path_size_pub->publish(path_size_int64);
 
-				double t_all = (ros::Time::now() - t1).toSec();
+				double t_all = (node->get_clock()->now() - t1).seconds();
 
-				// ROS_INFO("KINODYNAMIC all TIME: %f",t_all);
+				// RCLCPP_INFO("KINODYNAMIC all TIME: %f",t_all);
 				replan_flag = false;
 	}
 private:
@@ -351,13 +349,13 @@ private:
 
 	double prev_start[3];
 
-	nav_msgs::Path kino_nav_path;
-	std_msgs::Int64 path_size_int64;
-	nav_msgs::Path kino_nav_path_px4;
+	nav_msgs::msg::Path kino_nav_path;
+	std_msgs::msg::Int64 path_size_int64;
+	nav_msgs::msg::Path kino_nav_path_px4;
 
 	//odometry and local pose
-	geometry_msgs::PoseStamped local_pose;
-	nav_msgs::Odometry uav_odom;
+	geometry_msgs::msg::PoseStamped local_pose;
+	nav_msgs::msg::Odometry uav_odom;
 
 	// goal state
 	double prev_goal[3];
@@ -372,17 +370,17 @@ private:
 	bool firstplan_flag = true;
 };
 
-void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr &msg, planner* planner_ptr)
+void cloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg, planner* planner_ptr)
 {
 	pcl::PointCloud<pcl::PointXYZ> cloud_input;
   	pcl::fromROSMsg(*msg, (cloud_input));
-	// ROS_INFO("FROM ROS TO PCLOUD SUCESS");
+	// RCLCPP_INFO("FROM ROS TO PCLOUD SUCESS");
 
 
 	//only input point clouds in 20 meters to reduce computation
-  	ros::Time t1 = ros::Time::now();
+  	rclcpp::Time t1 = node->get_clock()->now();
 	pcl::PointCloud<pcl::PointXYZ> cloud_cutoff;
-	// ROS_INFO("FROM ROS TO PCLOUD Size is %d",int(cloud_input.size()));
+	// RCLCPP_INFO("FROM ROS TO PCLOUD Size is %d",int(cloud_input.size()));
 	for (size_t i = 0; i < cloud_input.points.size(); i = i+2)
   	{
     if(fabs(cloud_input.points[i].x - cur_pos(0))>20 || fabs(cloud_input.points[i].y - cur_pos(1))>20 || fabs(cloud_input.points[i].z - cur_pos(2))>20)
@@ -393,26 +391,26 @@ void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr &msg, planner* plann
 	}
   	}
 
-	ros::Time t2 = ros::Time::now();
- 	// ROS_INFO("Pointcloud CUTOFF used %f s",(t2-t1).toSec());
+	rclcpp::Time t2 = node->get_clock()->now();
+ 	// RCLCPP_INFO("Pointcloud CUTOFF used %f s",(t2-t1).toSec());
 	
 	kino_path_finder_->setKdtree(cloud_cutoff);
 	planner_ptr->replan();
 }
 
-nav_msgs::Odometry uav_odometry;
-void odomCb(const nav_msgs::Odometry::ConstPtr &msg, planner* planner_ptr)
+nav_msgs::msg::Odometry uav_odometry;
+void odomCb(const nav_msgs::msg::Odometry::SharedPtr msg, planner* planner_ptr)
 {
-	// ROS_INFO("RECEIVED ODOMETRY"); 
+	// RCLCPP_INFO("RECEIVED ODOMETRY"); 
 	uav_odometry = *msg;
 }
 
-void startCb(const geometry_msgs::PointStamped::ConstPtr &msg, planner* planner_ptr)
+void startCb(const geometry_msgs::msg::PointStamped::SharedPtr msg, planner* planner_ptr)
 {
 	planner_ptr->init_start();
 }
 
-void poseCb(const geometry_msgs::PoseStamped::ConstPtr &msg, planner* planner_ptr)
+void poseCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg, planner* planner_ptr)
 {
 	planner_ptr->setlocalpose(*msg);
 
@@ -423,14 +421,14 @@ void poseCb(const geometry_msgs::PoseStamped::ConstPtr &msg, planner* planner_pt
 	cur_pos(2) = msg->pose.position.z;
 }
 
-void goalCb(const geometry_msgs::PoseStamped::ConstPtr &msg, planner* planner_ptr)
+void goalCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg, planner* planner_ptr)
 {
 	planner_ptr->setGoal(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
 }
 
-void timeindexCallBack(const std_msgs::Int64::ConstPtr &msg, planner* planner_ptr)
+void timeindexCallBack(const std_msgs::msg::Int64::SharedPtr msg, planner* planner_ptr)
 {
-	std_msgs::Int64 time_index_int64;
+	std_msgs::msg::Int64 time_index_int64;
 	int time_index=0;
 	time_index_int64 = *msg;
     time_index = time_index_int64.data;
@@ -439,47 +437,44 @@ void timeindexCallBack(const std_msgs::Int64::ConstPtr &msg, planner* planner_pt
 
 int main(int argc, char **argv)
 {
-	ros::init(argc, argv, "dyn_obs_planner");
-	ros::NodeHandle n;
+	rclcpp::init(argc, argv);
+	node = rclcpp::Node::make_shared("path_planner");
 
 	planner planner_object;
 
-	ros::NodeHandle relative_nh("~");
-	relative_nh.param<std::string>("search/map_frame", map_frame_, "map");
-	relative_nh.param<std::string>("search/pose_topic", pose_topic_, "/mavros/local_position/pose");
+	node->declare_parameter<std::string>("search/map_frame", map_frame_);
+	node->declare_parameter<std::string>("search/pose_topic", pose_topic_);
 
     //kino astar
-    kino_path_finder_.reset(new KinodynamicAstar);
-    kino_path_finder_->setParam(n);
+    kino_path_finder_.reset(new KinodynamicAstar(node));
+    kino_path_finder_->setParam();
     kino_path_finder_->init();
 
-    // outfile.open("/home/dji/kong_ws/RRT-andjerk_ws/test_time/searching_time.txt", ios::out | ios::trunc );
-
-	ros::Subscriber odom_sub = n.subscribe<nav_msgs::Odometry>("/mavros/odometry/out", 1, boost::bind(&odomCb, _1, &planner_object));
-	std::string cloud_topic = "/cloud_registered_map";
-	n.param<std::string>("/search/cloud", cloud_topic, cloud_topic);
-	ros::Subscriber pointcloud_sub = n.subscribe<sensor_msgs::PointCloud2>(cloud_topic, 1, boost::bind(&cloudCallback, _1, &planner_object));
-
-	ros::Subscriber pose_sub = n.subscribe<geometry_msgs::PoseStamped>(pose_topic_, 100, boost::bind(&poseCb, _1, &planner_object));
-
-	ros::Subscriber goal_sub = n.subscribe<geometry_msgs::PoseStamped>("/goal", 10000, boost::bind(&goalCb, _1, &planner_object));
-
-	ros::Subscriber time_index_sub = n.subscribe<std_msgs::Int64>("/demo_node/trajectory_time_index",1000,boost::bind(&timeindexCallBack, _1, &planner_object));
-
-	vis_pub = n.advertise<visualization_msgs::Marker>( "visualization_marker", 0 );
-	traj_pub = n.advertise<trajectory_msgs::MultiDOFJointTrajectory>("waypoints",1);
-
-	kino_pub = n.advertise<visualization_msgs::Marker>("kino_marker", 1);
-	kino_path_pub = n.advertise<nav_msgs::Path>("kino_path", 1);
-
-	Bspline_pub = n.advertise<trajectory_msgs::MultiDOFJointTrajectory>("smooth_waypoints",1);
-
-	pos_pub = n.advertise<nav_msgs::Path>("/search_node/trajectory_position",1, true);
-    vel_pub = n.advertise<nav_msgs::Path>("/search_node/trajectory_velocity",1, true);
-    acc_pub = n.advertise<nav_msgs::Path>("/search_node/trajectory_accel",1, true);
-    path_size_pub = n.advertise<std_msgs::Int64>("/search_node/trajectory_path_size",1);
 	
-	ros::spin();
+	std::string cloud_topic = "/cloud_registered_map";
+
+	node->declare_parameter<std::string>("/search/cloud", cloud_topic);
+
+	// auto odom_sub = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/odometry/out", 1, std::bind(&odomCb, _1, &planner_object));
+	// auto pointcloud_sub = node->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic, 1, std::bind(&cloudCallback, _1, &planner_object));
+	// auto pose_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>(pose_topic_, 100, std::bind(&poseCb, _1, &planner_object));
+	// auto goal_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>("/goal", 10000, std::bind(&goalCb, _1, &planner_object));
+	// auto time_index_sub = node->create_subscription<std_msgs::msg::Int64>("/demo_node/trajectory_time_index",1000,std::bind(&timeindexCallBack, _1, &planner_object));
+
+	vis_pub = node->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 0 );
+	traj_pub = node->create_publisher<trajectory_msgs::msg::MultiDOFJointTrajectory>("waypoints",1);
+
+	kino_pub = node->create_publisher<visualization_msgs::msg::Marker>("kino_marker", 1);
+	kino_path_pub = node->create_publisher<nav_msgs::msg::Path>("kino_path", 1);
+
+	Bspline_pub = node->create_publisher<trajectory_msgs::msg::MultiDOFJointTrajectory>("smooth_waypoints",1);
+
+	pos_pub = node->create_publisher<nav_msgs::msg::Path>("/search_node/trajectory_position", 1);
+    vel_pub = node->create_publisher<nav_msgs::msg::Path>("/search_node/trajectory_velocity", 1);
+    acc_pub = node->create_publisher<nav_msgs::msg::Path>("/search_node/trajectory_accel", 1);
+    path_size_pub = node->create_publisher<std_msgs::msg::Int64>("/search_node/trajectory_path_size", 1);
+	
+	rclcpp::spin(node);
 
 	return 0;
 }

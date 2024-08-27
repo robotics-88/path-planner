@@ -41,27 +41,22 @@
 #include <unistd.h>
 #include <Python.h>
 #include <so3_math.h>
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 #include <Eigen/Core>
 #include <opencv2/opencv.hpp>
 #include <common_lib.h>
 #include <kd_tree/kd_tree.h>
 #include "IMU_Processing.hpp"
-#include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
+#include "nav_msgs/msg/path.hpp"
 #include <opencv2/core/eigen.hpp>
-#include <visualization_msgs/Marker.h>
+//#include <visualization_msgs/Marker.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/io/pcd_io.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <tf/transform_datatypes.h>
-#include <tf/transform_broadcaster.h>
-#include <fast_lio/States.h>
-#include <geometry_msgs/Vector3.h>
+#include "tf2/transform_datatypes.h"
 
 // #include <Exp_mat.h>
 
@@ -622,35 +617,37 @@ bool sync_packages(MeasureGroup &meas)
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "laserMapping");
-    ros::NodeHandle nh;
+    ros::init(argc, argv);
+    
+    node = rclcpp::Node::make_shared("laser_mapping");
 
     // Get IMU topic
     std::string imu_topic = "";
     std::string slam_map_frame = "";
     std::string base_frame = "";
     std::string slam_pose_topic = "";
-    ros::param::get("~imu_topic",imu_topic);
-    ros::param::get("~slam_map_frame",slam_map_frame);
-    ros::param::get("~base_frame",base_frame);
-    ros::param::get("~slam_pose_topic",slam_pose_topic);
 
-    ros::Subscriber sub_pcl = nh.subscribe("/laser_cloud_flat", 20000, feat_points_cbk);
-    ros::Subscriber sub_imu = nh.subscribe(imu_topic, 20000, imu_cbk);
-    ros::Publisher pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>
+    node->get_parameter("imu_topic",imu_topic);
+    node->get_parameter("slam_map_frame",slam_map_frame);
+    node->get_parameter("base_frame",base_frame);
+    node->get_parameter("slam_pose_topic",slam_pose_topic);
+
+    auto sub_pcl = node->create_subscription("/laser_cloud_flat", 20000, feat_points_cbk);
+    auto sub_imu = node->create_subscription(imu_topic, 20000, imu_cbk);
+    auto pubLaserCloudFullRes = node->create_publication<sensor_msgs::msg::PointCloud2>
             ("/cloud_registered", 100);
-    ros::Publisher pubLaserCloudEffect  = nh.advertise<sensor_msgs::PointCloud2>
+    auto pubLaserCloudEffect  = node->create_publication<sensor_msgs::msg::PointCloud2>
             ("/cloud_effected", 100);
-    ros::Publisher pubLaserCloudMap = nh.advertise<sensor_msgs::PointCloud2>
+    auto pubLaserCloudMap = node->create_publication<sensor_msgs::msg::PointCloud2>
             ("/Laser_map", 100);
-    ros::Publisher pubOdomAftMapped = nh.advertise<nav_msgs::Odometry> 
+    auto pubOdomAftMapped = node->create_publication<nav_msgs::msg::Odometry> 
             ("/mavros/odometry/out", 10);
-    ros::Publisher pubPath          = nh.advertise<nav_msgs::Path> 
+    auto pubPath          = node->create_publication<nav_msgs::msg::Path> 
             ("/path", 10);
-    ros::Publisher pose_publisher = nh.advertise<geometry_msgs::PoseStamped>(slam_pose_topic, 10);
+    auto pose_publisher = node->create_publication<geometry_msgs::msg::PoseStamped>(slam_pose_topic, 10);
     
-    geometry_msgs::PoseStamped msg_body_pose;
-    nav_msgs::Path path;
+    geometry_msgs::msg::PoseStamped msg_body_pose;
+    nav_msgs::msg::Path path;
     path.header.stamp    = ros::Time::now();
     path.header.frame_id = slam_map_frame;
 
@@ -665,7 +662,7 @@ int main(int argc, char** argv)
     H_T_H.setZero();
     I_STATE.setIdentity();
 
-    nav_msgs::Odometry odomAftMapped;
+    nav_msgs::msg::Odometry odomAftMapped;
 
     cv::Mat matA1(3, 3, CV_32F, cv::Scalar::all(0));
     cv::Mat matD1(1, 3, CV_32F, cv::Scalar::all(0));
@@ -681,14 +678,14 @@ int main(int argc, char** argv)
     pcl::VoxelGrid<PointType> downSizeFilterMap;
 
     /*** variables initialize ***/
-    ros::param::get("~dense_map_enable",dense_map_en);
-    ros::param::get("~max_iteration",NUM_MAX_ITERATIONS);
-    ros::param::get("~map_file_path",map_file_path);
-    ros::param::get("~fov_degree",fov_deg);
-    ros::param::get("~filter_size_corner",filter_size_corner_min);
-    ros::param::get("~filter_size_surf",filter_size_surf_min);
-    ros::param::get("~filter_size_map",filter_size_map_min);
-    ros::param::get("~cube_side_length",cube_len);
+    node->get_parameter("dense_map_enable", dense_map_en);
+    node->get_parameter("max_iteration", NUM_MAX_ITERATIONS);
+    node->get_parameter("map_file_path", map_file_path);
+    node->get_parameter("fov_degree", fov_deg);
+    node->get_parameter("filter_size_corner", filter_size_corner_min);
+    node->get_parameter("filter_size_surf", filter_size_surf_min);
+    node->get_parameter("filter_size_map", filter_size_map_min);
+    node->get_parameter("cube_side_length", cube_len);
 
     HALF_FOV_COS = std::cos((fov_deg + 10.0) * 0.5 * PI_M / 180.0);
 
@@ -713,12 +710,12 @@ int main(int argc, char** argv)
 
 //------------------------------------------------------------------------------------------------------
     signal(SIGINT, SigHandle);
-    ros::Rate rate(5000);
+    rclcpp::Rate rate(5000);
     bool status = ros::ok();
     while (status)
     {
         if (flg_exit) break;
-        ros::spinOnce();
+        rclcpp::spinOnce();
 
         while(sync_packages(Measures)) 
         {
@@ -1200,12 +1197,12 @@ int main(int argc, char** argv)
                 laserCloudFullResColor->push_back(temp_point);
             }
 
-            sensor_msgs::PointCloud2 laserCloudFullRes3;
+            sensor_msgs::msg::PointCloud2 laserCloudFullRes3;
             pcl::toROSMsg(*laserCloudFullResColor, laserCloudFullRes3);
             laserCloudFullRes3.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
             laserCloudFullRes3.header.frame_id = slam_map_frame;
 
-            pubLaserCloudFullRes.publish(laserCloudFullRes3);
+            pubLaserCloudFullRes->publish(laserCloudFullRes3);
             }
 
             /******* Publish Effective points *******/
@@ -1221,7 +1218,7 @@ int main(int argc, char** argv)
             pcl::toROSMsg(*laserCloudFullResColor, laserCloudFullRes3);
             laserCloudFullRes3.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
             laserCloudFullRes3.header.frame_id = slam_map_frame;
-            pubLaserCloudEffect.publish(laserCloudFullRes3);
+            pubLaserCloudEffect->publish(laserCloudFullRes3);
             }
 
             /******* Publish Maps:  *******/
@@ -1229,7 +1226,7 @@ int main(int argc, char** argv)
             // pcl::toROSMsg(*featsFromMap, laserCloudMap);
             // laserCloudMap.header.stamp = ros::Time::now();//ros::Time().fromSec(last_timestamp_lidar);
             // laserCloudMap.header.frame_id = slam_map_frame;
-            // pubLaserCloudMap.publish(laserCloudMap);
+            // pubLaserCloudMap->publish(laserCloudMap);
 
             /******* Publish Odometry ******/
             // // Transfer to Inertial frame
@@ -1269,11 +1266,10 @@ int main(int argc, char** argv)
             // //compute new position
             // Eigen::Vector3d new_trans_pos;
             // new_trans_pos = rotation_matrix3 * state.pos_end + trans_param;
-
-            tf::Quaternion quat;
+            tf2::Quaternion quat;
             quat.setRPY(euler_cur(0), euler_cur(1), euler_cur(2));
             quat.normalize();
-            geometry_msgs::Quaternion geoQuat;
+            geometry_msgs::msg::Quaternion geoQuat;
             geoQuat.x = quat.getX();
             geoQuat.y = quat.getY();
             geoQuat.z = quat.getZ();
@@ -1294,7 +1290,7 @@ int main(int argc, char** argv)
             odomAftMapped.twist.twist.linear.x = twist(0);
             odomAftMapped.twist.twist.linear.y = twist(1);
             odomAftMapped.twist.twist.linear.z = twist(2);
-            pubOdomAftMapped.publish(odomAftMapped);
+            pubOdomAftMapped->publish(odomAftMapped);
 
             static tf::TransformBroadcaster br;
             tf::Transform                   transform;
@@ -1320,12 +1316,12 @@ int main(int argc, char** argv)
             msg_body_pose.pose.orientation.z = geoQuat.z;
             msg_body_pose.pose.orientation.w = geoQuat.w;
 
-            pose_publisher.publish(msg_body_pose);
+            pose_publisher->publish(msg_body_pose);
 
             /******* Publish Path ********/
             msg_body_pose.header.frame_id = slam_map_frame;
             path.poses.push_back(msg_body_pose);
-            pubPath.publish(path);
+            pubPath->publish(path);
 
             /*** save debug variables ***/
             frame_num ++;

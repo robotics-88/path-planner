@@ -5,7 +5,7 @@
 #include <thread>
 #include <fstream>
 #include <csignal>
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 #include <so3_math.h>
 #include <Eigen/Eigen>
 #include <common_lib.h>
@@ -13,16 +13,16 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <condition_variable>
-#include <nav_msgs/Odometry.h>
+#include "nav_msgs/msg/odometry.hpp"
 #include <pcl/common/transforms.h>
 #include <pcl/kdtree/kdtree_flann.h>
-#include <tf/transform_broadcaster.h>
-#include <eigen_conversions/eigen_msg.h>
+#include "tf2_ros/transform_broadcaster.h"
+#include "tf2_eigen_kdl/tf2_eigen_kdl.hpp"
 #include <pcl_conversions/pcl_conversions.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <fast_lio/States.h>
-#include <geometry_msgs/Vector3.h>
+#include "sensor_msgs/msg/imu.hpp"
+#include "sensor_msgs/msg/point_cloud2.hpp"
+#include "fast_lio_msgs/msg/states.hpp"
+#include "geometry_msgs/msg/vector3.hpp"
 
 /// *************Preconfiguration
 
@@ -49,7 +49,7 @@ class ImuProcess
 
   void UndistortPcl(const MeasureGroup &meas, StatesGroup &state_inout, PointCloudXYZI &pcl_in_out);
 
-  ros::NodeHandle nh;
+  const std::shared_ptr<rclcpp::Node> nh_;
 
   void Integrate(const sensor_msgs::ImuConstPtr &imu);
   void Reset(double start_timestamp, const sensor_msgs::ImuConstPtr &lastimu);

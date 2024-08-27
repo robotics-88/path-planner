@@ -1,4 +1,4 @@
-#include <path_searching/kinodynamic_astar.h>
+#include "path_searching/kinodynamic_astar.h"
 #include <sstream>
 
 using namespace std;
@@ -6,6 +6,12 @@ using namespace Eigen;
 
 // namespace fast_planner
 // {
+
+KinodynamicAstar::KinodynamicAstar(const std::shared_ptr<rclcpp::Node>& node) 
+  : node_(node)
+{
+}
+
 KinodynamicAstar::~KinodynamicAstar()
 {
   for (int i = 0; i < allocate_num_; i++)
@@ -23,7 +29,7 @@ KinodynamicAstar::~KinodynamicAstar()
 //Time accumulated KD-Tree realize
 void KinodynamicAstar::setKdtree(const pcl::PointCloud<pcl::PointXYZ> cloud_input){
 
-  ros::Time t1 = ros::Time::now();
+  rclcpp::Time t1 = node_->get_clock()->now();
 
   if(cloud_input_num >= KT_HORIZON * KT_NUM)
   {
@@ -44,7 +50,7 @@ void KinodynamicAstar::setKdtree(const pcl::PointCloud<pcl::PointXYZ> cloud_inpu
     cloud_accumulate = cloud_temp;
   }
 
-  ros::Time t4 = ros::Time::now();
+  rclcpp::Time t4 = node_->get_clock()->now();
   // Create the filtering object
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;
   cloud_filtered = cloud_accumulate.makeShared();;
@@ -58,7 +64,7 @@ void KinodynamicAstar::setKdtree(const pcl::PointCloud<pcl::PointXYZ> cloud_inpu
 
   cloud_accumulate = *cloud_filtered;
 
-  ros::Time t3 = ros::Time::now();
+  rclcpp::Time t3 = node_->get_clock()->now();
   // ROS_INFO("Pointcloud filter used %f s",(t3-t4).toSec());
 
    int cloud_size = (*cloud_filtered).points.size();
@@ -67,23 +73,23 @@ void KinodynamicAstar::setKdtree(const pcl::PointCloud<pcl::PointXYZ> cloud_inpu
 
   kdtreeLocalMap[tree_input_num].setInputCloud(cloud_filtered);//(*cloud_filtered).makeShared()
 
-  ros::Time t2 = ros::Time::now();
-  outfile<< (t2-t1).toSec() <<endl;
+  rclcpp::Time t2 = node_->get_clock()->now();
+  outfile<< (t2-t1).seconds() <<endl;
   
   // ROS_INFO("Pointcloud input to KDTREE used %f s, cloud size = %d",(t2-t1).toSec(),cloud_size);
 
   cloud_input_num++;
 
-            sensor_msgs::PointCloud2 kdtreepointcloud,kdtreepointcloud2;
+            sensor_msgs::msg::PointCloud2 kdtreepointcloud,kdtreepointcloud2;
             pcl::toROSMsg((*cloud_filtered), kdtreepointcloud);//
-            kdtreepointcloud.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
+            kdtreepointcloud.header.stamp = node_->get_clock()->now();//.fromSec(last_timestamp_lidar);
             kdtreepointcloud.header.frame_id = map_frame_;
-            kd_ptcloud_pub_filtered.publish(kdtreepointcloud);
+            kd_ptcloud_pub_filtered->publish(kdtreepointcloud);
 
             pcl::toROSMsg(cloud_accumulate2, kdtreepointcloud2);//
-            kdtreepointcloud2.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
+            kdtreepointcloud2.header.stamp = node_->get_clock()->now();//.fromSec(last_timestamp_lidar);
             kdtreepointcloud2.header.frame_id = map_frame_;
-            kd_ptcloud_pub_accumulated.publish(kdtreepointcloud2);
+            kd_ptcloud_pub_accumulated->publish(kdtreepointcloud2);
 
 
     cloud_all = cloud_all + cloud_input;
@@ -91,7 +97,7 @@ void KinodynamicAstar::setKdtree(const pcl::PointCloud<pcl::PointXYZ> cloud_inpu
 
 bool KinodynamicAstar::isSafe(double x, double y,double z){
 
-  // ros::Time t1 = ros::Time::now();
+  // rclcpp::Time t1 = node_->get_clock()->now();
 
   pcl::PointXYZ searchPoint(x,y,z);
 
@@ -108,7 +114,7 @@ bool KinodynamicAstar::isSafe(double x, double y,double z){
 
   // for(int i = 0;i<KT_NUM;i++)
   // {
-  ros::Time t1 = ros::Time::now();
+  rclcpp::Time t1 = node_->get_clock()->now();
   search_count++;
   if ( kdtreeLocalMap[0].nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 )
   {
@@ -124,9 +130,9 @@ bool KinodynamicAstar::isSafe(double x, double y,double z){
     }
 
   }
-  ros::Time t2 = ros::Time::now();
+  rclcpp::Time t2 = node_->get_clock()->now();
   // ROS_INFO("One search in nearest KDTREE used %f s, square distance = %f",(t2-t1).toSec(),pointNKNSquaredDistance[0]);
-  search_time_amount = (t2-t1).toSec() + search_time_amount;
+  search_time_amount = (t2-t1).seconds() + search_time_amount;
   // }
 
   return true;
@@ -136,14 +142,14 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
                              Eigen::Vector3d end_pt, Eigen::Vector3d end_v, bool init, bool dynamic, double time_start)
 {
 
-  ros::Time t1 = ros::Time::now();
+  rclcpp::Time t1 = node_->get_clock()->now();
 
   // Get latest altitude limits
-  if (!ros::param::get("/path_planning_node/search/max_alt", max_alt_))
-    ROS_WARN("kino: cannot get max altitude param");
+  if (!node_->get_parameter("/path_planning_node/search/max_alt", max_alt_))
+    RCLCPP_WARN(node_->get_logger(), "kino: cannot get max altitude param");
 
-  if (!ros::param::get("/path_planning_node/search/min_alt", min_alt_))
-    ROS_WARN("kino: cannot get min altitude param");
+  if (!node_->get_parameter("/path_planning_node/search/min_alt", min_alt_))
+    RCLCPP_WARN(node_->get_logger(), "kino: cannot get min altitude param");
 
   start_vel_ = start_v;
   start_acc_ = start_a;
@@ -176,7 +182,7 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
     // cout << "time start: " << time_start << endl;
   }
   else {
-    cur_node->time = t1.toSec();
+    cur_node->time = t1.seconds();
     expanded_nodes_.insert(cur_node->index, cur_node);
   }
 
@@ -186,7 +192,7 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
   const int tolerance = ceil(1 / resolution_);
 
   // std::cout << "kino initialized"<<std::endl;
-  ros::Time t2 = ros::Time::now();
+  rclcpp::Time t2 = node_->get_clock()->now();
   // ROS_INFO("INIT TIME = %f",(t2-t1).toSec());
 
   while (!open_set_.empty())
@@ -209,7 +215,7 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
         estimateHeuristic(cur_node->state, end_state, time_to_goal);
         computeShotTraj(cur_node->state, end_state, time_to_goal);
         if (init_search)
-          ROS_ERROR("Shot in first search loop!");
+          RCLCPP_ERROR(node_->get_logger(), "Shot in first search loop!");
       }
 
     }
@@ -463,7 +469,7 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
     // init_search = false;
   }
 
-  ros::Time t3 = ros::Time::now();
+  rclcpp::Time t3 = node_->get_clock()->now();
   // ROS_INFO("kino Astar TIME = %f",(t3-t2).toSec());
 
   // cout << "open set empty, no path!" << endl;
@@ -472,34 +478,33 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
   return NO_PATH;
 }
 
-void KinodynamicAstar::setParam(ros::NodeHandle& nh)
+void KinodynamicAstar::setParam()
 {
-  nh.param("search/max_tau", max_tau_, -1.0);
-  nh.param("search/init_max_tau", init_max_tau_, -1.0);
-  nh.param("search/max_vel", max_vel_, -1.0);
-  nh.param("search/max_acc", max_acc_, -1.0);
-  nh.param("search/w_time", w_time_, -1.0);
-  nh.param("search/horizon", horizon_, -1.0);
-  nh.param("search/resolution_astar", resolution_, -1.0);
-  nh.param("search/time_resolution", time_resolution_, -1.0);
-  nh.param("search/lambda_heu", lambda_heu_, -1.0);
-  nh.param("search/allocate_num", allocate_num_, -1);
-  nh.param("search/check_num", check_num_, -1);
-  nh.param("search/optimistic", optimistic_, true);
+  node_->declare_parameter("search/max_tau", max_tau_);
+  node_->declare_parameter("search/init_max_tau", init_max_tau_);
+  node_->declare_parameter("search/max_vel", max_vel_);
+  node_->declare_parameter("search/max_acc", max_acc_);
+  node_->declare_parameter("search/w_time", w_time_);
+  node_->declare_parameter("search/horizon", horizon_);
+  node_->declare_parameter("search/resolution_astar", resolution_);
+  node_->declare_parameter("search/time_resolution", time_resolution_);
+  node_->declare_parameter("search/lambda_heu", lambda_heu_);
+  node_->declare_parameter("search/allocate_num", allocate_num_);
+  node_->declare_parameter("search/check_num", check_num_);
+  node_->declare_parameter("search/optimistic", optimistic_);
   tie_breaker_ = 1.0 + 1.0 / 10000;
 
   double vel_margin;
-  nh.param("search/vel_margin", vel_margin, 0.0);
+  node_->declare_parameter("search/vel_margin", vel_margin);
   max_vel_ += vel_margin;
 
-  ros::NodeHandle relative_nh("~");
-  relative_nh.param("search/min_alt", min_alt_, 1.5);
-  relative_nh.param("search/max_alt", max_alt_, 5.0);
-  relative_nh.param("search/obstacle_dist_threshold", min_safe_dist_, 1.0);
-  relative_nh.param<std::string>("search/map_frame", map_frame_, "map");
+  node_->declare_parameter("search/min_alt", min_alt_);
+  node_->declare_parameter("search/max_alt", max_alt_);
+  node_->declare_parameter("search/obstacle_dist_threshold", min_safe_dist_);
+  node_->declare_parameter<std::string>("search/map_frame", map_frame_);
 
-  kd_ptcloud_pub_filtered = nh.advertise<sensor_msgs::PointCloud2>("/kd_pointcloud_filtered",100);
-  kd_ptcloud_pub_accumulated = nh.advertise<sensor_msgs::PointCloud2>("/kd_pointcloud_accumulated",100);
+  kd_ptcloud_pub_filtered = node_->create_publisher<sensor_msgs::msg::PointCloud2>("/kd_pointcloud_filtered", 100);
+  kd_ptcloud_pub_accumulated = node_->create_publisher<sensor_msgs::msg::PointCloud2>("/kd_pointcloud_accumulated", 100);
 
 	// octree_sub = nh.subscribe<octomap_msgs::Octomap>("/octomap_binary", 1, kino_octomap_Callback);
 
