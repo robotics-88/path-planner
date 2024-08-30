@@ -492,7 +492,6 @@ void KinodynamicAstar::setParam()
   node_->declare_parameter("search/allocate_num", allocate_num_);
   node_->declare_parameter("search/check_num", check_num_);
   node_->declare_parameter("search/optimistic", optimistic_);
-  tie_breaker_ = 1.0 + 1.0 / 10000;
 
   double vel_margin;
   node_->declare_parameter("search/vel_margin", vel_margin);
@@ -502,6 +501,27 @@ void KinodynamicAstar::setParam()
   node_->declare_parameter("search/max_alt", max_alt_);
   node_->declare_parameter("search/obstacle_dist_threshold", min_safe_dist_);
   node_->declare_parameter<std::string>("search/map_frame", map_frame_);
+
+  // Now get parameters
+
+  node_->get_parameter("search/max_tau", max_tau_);
+  node_->get_parameter("search/init_max_tau", init_max_tau_);
+  node_->get_parameter("search/max_vel", max_vel_);
+  node_->get_parameter("search/max_acc", max_acc_);
+  node_->get_parameter("search/w_time", w_time_);
+  node_->get_parameter("search/horizon", horizon_);
+  node_->get_parameter("search/resolution_astar", resolution_);
+  node_->get_parameter("search/time_resolution", time_resolution_);
+  node_->get_parameter("search/lambda_heu", lambda_heu_);
+  node_->get_parameter("search/allocate_num", allocate_num_);
+  node_->get_parameter("search/check_num", check_num_);
+  node_->get_parameter("search/optimistic", optimistic_);
+  max_vel_ += vel_margin;
+
+  node_->get_parameter("search/min_alt", min_alt_);
+  node_->get_parameter("search/max_alt", max_alt_);
+  node_->get_parameter("search/obstacle_dist_threshold", min_safe_dist_);
+  node_->get_parameter("search/map_frame", map_frame_);
 
   kd_ptcloud_pub_filtered = node_->create_publisher<sensor_msgs::msg::PointCloud2>("/kd_pointcloud_filtered", 100);
   kd_ptcloud_pub_accumulated = node_->create_publisher<sensor_msgs::msg::PointCloud2>("/kd_pointcloud_accumulated", 100);

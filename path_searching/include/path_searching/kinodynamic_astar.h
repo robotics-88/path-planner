@@ -152,7 +152,7 @@ class KinodynamicAstar {
   double min_alt_, max_alt_;
   double w_time_, horizon_, lambda_heu_;
   int allocate_num_, check_num_;
-  double tie_breaker_;
+  double tie_breaker_ = 1.0 + 1.0 / 10000;
   bool optimistic_;
   double min_safe_dist_;
 

@@ -445,8 +445,8 @@ int main(int argc, char **argv)
 
 	planner_ptr = std::make_shared<planner>();
 
-	node->declare_parameter<std::string>("search/map_frame", map_frame_);
-	node->declare_parameter<std::string>("search/pose_topic", pose_topic_);
+	node->declare_parameter("search/map_frame", map_frame_);
+	node->declare_parameter("search/pose_topic", pose_topic_);
 
     //kino astar
     kino_path_finder_.reset(new KinodynamicAstar(node));
@@ -455,8 +455,11 @@ int main(int argc, char **argv)
 
 	
 	std::string cloud_topic = "/cloud_registered_map";
+	node->declare_parameter("/search/cloud", cloud_topic);
 
-	node->declare_parameter<std::string>("/search/cloud", cloud_topic);
+	node->get_parameter("search/map_frame", map_frame_);
+	node->get_parameter("search/pose_topic", pose_topic_);
+	node->get_parameter("/search/cloud", cloud_topic);
 
 	auto odom_sub = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/odometry/out", 1, std::bind(&odomCb, _1));
 	// auto pointcloud_sub = node->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic, 1, std::bind(&cloudCallback, _1, &planner_object));
