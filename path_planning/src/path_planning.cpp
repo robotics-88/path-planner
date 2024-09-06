@@ -426,6 +426,7 @@ void poseCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 
 void goalCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
+	RCLCPP_INFO(node->get_logger(), "Running goal CB");
 	planner_ptr->setGoal(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
 }
 
@@ -461,11 +462,11 @@ int main(int argc, char **argv)
 	node->get_parameter("search/pose_topic", pose_topic_);
 	node->get_parameter("/search/cloud", cloud_topic);
 
-	auto odom_sub = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/odometry/out", 1, std::bind(&odomCb, _1));
-	// auto pointcloud_sub = node->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic, 1, std::bind(&cloudCallback, _1, &planner_object));
-	// auto pose_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>(pose_topic_, 100, std::bind(&poseCb, _1, &planner_object));
-	// auto goal_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>("/goal", 10000, std::bind(&goalCb, _1, &planner_object));
-	// auto time_index_sub = node->create_subscription<std_msgs::msg::Int64>("/demo_node/trajectory_time_index",1000,std::bind(&timeindexCallBack, _1, &planner_object));
+	auto odom_sub = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/odometry/out", 1, odomCb);
+	auto pointcloud_sub = node->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic, 1, cloudCallback);
+	auto pose_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>(pose_topic_, 100, poseCb);
+	auto goal_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>("/goal", 10000, goalCb);
+	auto time_index_sub = node->create_subscription<std_msgs::msg::Int64>("/demo_node/trajectory_time_index", 1000, timeindexCallBack);
 
 	vis_pub = node->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 0 );
 	traj_pub = node->create_publisher<trajectory_msgs::msg::MultiDOFJointTrajectory>("waypoints",1);
@@ -481,6 +482,6 @@ int main(int argc, char **argv)
     path_size_pub = node->create_publisher<std_msgs::msg::Int64>("/search_node/trajectory_path_size", 1);
 	
 	rclcpp::spin(node);
-
+	rclcpp::shutdown();
 	return 0;
 }
