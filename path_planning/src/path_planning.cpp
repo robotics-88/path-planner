@@ -426,7 +426,6 @@ void poseCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 
 void goalCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
-	RCLCPP_INFO(node->get_logger(), "Running goal CB");
 	planner_ptr->setGoal(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
 }
 
@@ -448,19 +447,17 @@ int main(int argc, char **argv)
 
 	node->declare_parameter("search/map_frame", map_frame_);
 	node->declare_parameter("search/pose_topic", pose_topic_);
+	std::string cloud_topic = "/cloud_registered_map";
+	node->declare_parameter("search/cloud", cloud_topic);
 
     //kino astar
     kino_path_finder_.reset(new KinodynamicAstar(node));
     kino_path_finder_->setParam();
     kino_path_finder_->init();
 
-	
-	std::string cloud_topic = "/cloud_registered_map";
-	node->declare_parameter("/search/cloud", cloud_topic);
-
 	node->get_parameter("search/map_frame", map_frame_);
 	node->get_parameter("search/pose_topic", pose_topic_);
-	node->get_parameter("/search/cloud", cloud_topic);
+	node->get_parameter("search/cloud", cloud_topic);
 
 	auto odom_sub = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/odometry/out", 1, odomCb);
 	auto pointcloud_sub = node->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic, 1, cloudCallback);

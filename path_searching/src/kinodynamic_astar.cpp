@@ -145,10 +145,10 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
   rclcpp::Time t1 = node_->get_clock()->now();
 
   // Get latest altitude limits
-  if (!node_->get_parameter("/path_planning_node/search/max_alt", max_alt_))
+  if (!node_->get_parameter("search/max_alt", max_alt_))
     RCLCPP_WARN(node_->get_logger(), "kino: cannot get max altitude param");
 
-  if (!node_->get_parameter("/path_planning_node/search/min_alt", min_alt_))
+  if (!node_->get_parameter("search/min_alt", min_alt_))
     RCLCPP_WARN(node_->get_logger(), "kino: cannot get min altitude param");
 
   start_vel_ = start_v;
@@ -500,7 +500,7 @@ void KinodynamicAstar::setParam()
   node_->declare_parameter("search/min_alt", min_alt_);
   node_->declare_parameter("search/max_alt", max_alt_);
   node_->declare_parameter("search/obstacle_dist_threshold", min_safe_dist_);
-  node_->declare_parameter<std::string>("search/map_frame", map_frame_);
+  // node_->declare_parameter<std::string>("search/map_frame", map_frame_);
 
   // Now get parameters
 
