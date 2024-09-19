@@ -37,6 +37,7 @@ ament_target_dependencies(${PROJECT_NAME}_node
   sensor_msgs
   geometry_msgs
   pcl_ros
+  pcl_conversions
 )
 
 install(TARGETS

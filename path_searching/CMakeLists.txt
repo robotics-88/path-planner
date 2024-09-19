@@ -33,6 +33,7 @@ target_link_libraries(path_searching
 ament_target_dependencies(path_searching
   rclcpp
   sensor_msgs
+  pcl_conversions
   pcl_ros
 )
 
