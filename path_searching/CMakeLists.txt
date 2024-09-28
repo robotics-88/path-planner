@@ -13,6 +13,7 @@ find_package(visualization_msgs)
 find_package(cv_bridge)
 find_package(sensor_msgs)
 find_package(pcl_ros)
+find_package(rcl_interfaces)
 
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
@@ -35,6 +36,7 @@ ament_target_dependencies(path_searching
   sensor_msgs
   pcl_conversions
   pcl_ros
+  rcl_interfaces
 )
 
 ament_export_include_directories(include)

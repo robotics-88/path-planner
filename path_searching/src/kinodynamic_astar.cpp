@@ -10,6 +10,7 @@ using namespace Eigen;
 KinodynamicAstar::KinodynamicAstar(const std::shared_ptr<rclcpp::Node>& node) 
   : node_(node)
 {
+  universal_altitude_service_ = node_->create_service<rcl_interfaces::srv::SetParametersAtomically>("universal_altitude_params", std::bind(&KinodynamicAstar::setAltitudeParams, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 }
 
 KinodynamicAstar::~KinodynamicAstar()
@@ -138,6 +139,20 @@ bool KinodynamicAstar::isSafe(double x, double y,double z){
   return true;
 }
 
+
+bool KinodynamicAstar::setAltitudeParams(const std::shared_ptr<rmw_request_id_t>/*request_header*/,
+                        const std::shared_ptr<rcl_interfaces::srv::SetParametersAtomically::Request> req,
+                        const std::shared_ptr<rcl_interfaces::srv::SetParametersAtomically::Response> resp) {
+  for (int ii = 0; ii < req->parameters.size(); ii++) {
+    if (req->parameters.at(ii).name == "max_alt") {
+      max_alt_ = req->parameters.at(ii).value.double_value;
+    }
+    else if (req->parameters.at(ii).name == "min_alt") {
+      min_alt_ = req->parameters.at(ii).value.double_value;
+    }
+  }
+}
+
 int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, Eigen::Vector3d start_a,
                              Eigen::Vector3d end_pt, Eigen::Vector3d end_v, bool init, bool dynamic, double time_start)
 {
@@ -145,12 +160,13 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
   rclcpp::Time t1 = node_->get_clock()->now();
 
   // Get latest altitude limits
-  if (!node_->get_parameter("search/max_alt", max_alt_))
-    RCLCPP_WARN(node_->get_logger(), "kino: cannot get max altitude param");
+  // if (!node_->get_parameter("search/max_alt", max_alt_))
+  //   RCLCPP_WARN(node_->get_logger(), "kino: cannot get max altitude param");
 
-  if (!node_->get_parameter("search/min_alt", min_alt_))
-    RCLCPP_WARN(node_->get_logger(), "kino: cannot get min altitude param");
+  // if (!node_->get_parameter("search/min_alt", min_alt_))
+  //   RCLCPP_WARN(node_->get_logger(), "kino: cannot get min altitude param");
 
+    std::cout << "searching with min " << min_alt_ << ", max " << max_alt_ << std::endl;
   start_vel_ = start_v;
   start_acc_ = start_a;
 

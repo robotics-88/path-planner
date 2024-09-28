@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "sensor_msgs/msg/point_cloud2.hpp"
+#include "rcl_interfaces/srv/set_parameters_atomically.hpp"
 
 #include <pcl/point_cloud.h>
 #include <pcl/kdtree/kdtree_flann.h>
@@ -213,6 +214,11 @@ class KinodynamicAstar {
                   vector<Eigen::Vector3d>& start_end_derivatives);
 
   std::vector<PathNodePtr> getVisitedNodes();
+
+  rclcpp::Service<rcl_interfaces::srv::SetParametersAtomically>::SharedPtr universal_altitude_service_;
+  bool setAltitudeParams(const std::shared_ptr<rmw_request_id_t>/*request_header*/,
+                         const std::shared_ptr<rcl_interfaces::srv::SetParametersAtomically::Request> req,
+                         const std::shared_ptr<rcl_interfaces::srv::SetParametersAtomically::Response> resp);
 
   typedef shared_ptr<KinodynamicAstar> Ptr;
 
