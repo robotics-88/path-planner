@@ -151,6 +151,9 @@ bool KinodynamicAstar::setAltitudeParams(const std::shared_ptr<rmw_request_id_t>
       min_alt_ = req->parameters.at(ii).value.double_value;
     }
   }
+  auto result = rcl_interfaces::msg::SetParametersResult();
+  result.successful = true;
+  resp->result = result;
 }
 
 int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, Eigen::Vector3d start_a,
@@ -159,14 +162,6 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
 
   rclcpp::Time t1 = node_->get_clock()->now();
 
-  // Get latest altitude limits
-  // if (!node_->get_parameter("search/max_alt", max_alt_))
-  //   RCLCPP_WARN(node_->get_logger(), "kino: cannot get max altitude param");
-
-  // if (!node_->get_parameter("search/min_alt", min_alt_))
-  //   RCLCPP_WARN(node_->get_logger(), "kino: cannot get min altitude param");
-
-    std::cout << "searching with min " << min_alt_ << ", max " << max_alt_ << std::endl;
   start_vel_ = start_v;
   start_acc_ = start_a;
 
