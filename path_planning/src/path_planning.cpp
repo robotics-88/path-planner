@@ -148,10 +148,10 @@ public:
 				prev_start[2] = start_pt(2);
 
 				int status = kino_path_finder_->search(start_pt, start_vel, start_acc, goal_pt, goal_vel, true);
-				// std::cout << "[kino replan]: startpoint kinodynamic search" << std::endl;
+				std::cout << "[kino replan]: startpoint kinodynamic search" << std::endl;
 
 				if (status == KinodynamicAstar::NO_PATH) {
-					// std::cout << "[kino replan]: startpoint kinodynamic search fail!" << std::endl;
+					std::cout << "[kino replan]: startpoint kinodynamic search fail!" << std::endl;
 
 					// retry searching with discontinuous initial state
 					kino_path_finder_->reset();
@@ -161,12 +161,12 @@ public:
 						RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "[kino replan]: Can't find path.");
 						return;
 					} else {
-						// std::cout << "[kino replan]: retry search success." << std::endl;
+						std::cout << "[kino replan]: retry search success." << std::endl;
 						firstplan_flag=false;
 					}
 
 				} else {
-					// std::cout << "[kino replan]: kinodynamic search success." << std::endl;
+					std::cout << "[kino replan]: kinodynamic search success." << std::endl;
 					firstplan_flag=false;
 				}					
 				}else{
@@ -222,7 +222,7 @@ public:
 				int status = kino_path_finder_->search(replan_startpt, replan_startpt_vel, start_acc, goal_pt, goal_vel, true);
 
 				if (status == KinodynamicAstar::NO_PATH) {
-					// std::cout << "[kino replan]: replan kinodynamic search fail!" << std::endl;
+					std::cout << "[kino replan]: replan kinodynamic search fail!" << std::endl;
 
 					// retry searching with discontinuous initial state
 					kino_path_finder_->reset();
@@ -232,11 +232,11 @@ public:
 						RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "[kino replan]: Can't find path.");
 						return;
 					} else {
-						//std::cout << "[kino replan]: retry search success." << std::endl;
+						std::cout << "[kino replan]: retry search success." << std::endl;
 					}
 
 				} else {
-					// std::cout << "[kino replan]: kinodynamic search success." << std::endl;
+					std::cout << "[kino replan]: kinodynamic search success." << std::endl;
 				}
 				}
 

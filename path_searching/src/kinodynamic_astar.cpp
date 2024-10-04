@@ -375,6 +375,7 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
           // check altitude limits
           if(pos(2) > max_alt_ || pos(2) < min_alt_)
           {
+            // std::cout << "Path target " << pos(2) << " outside of range: [" << min_alt_ << ", " << max_alt_ << "]" << std::endl;
             is_occ = true;
             break;
           }
