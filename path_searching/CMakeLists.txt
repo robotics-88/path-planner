@@ -1,40 +1,55 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(path_searching)
-set (CMAKE_CXX_STANDARD 14)
+
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+
+find_package(ament_cmake REQUIRED)
+
+find_package(rclcpp)
+find_package(std_msgs)
+find_package(visualization_msgs)
+find_package(cv_bridge)
+find_package(sensor_msgs)
+find_package(pcl_ros)
+find_package(rcl_interfaces)
 
 find_package(Eigen3 REQUIRED)
-find_package(PCL 1.10 REQUIRED)
+find_package(PCL REQUIRED)
 
-MESSAGE( "PCL_______________________________________ = ${PCL_INCLUDE_DIRS}.")
-
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  visualization_msgs
-  cv_bridge
+include_directories(  
+  include 
+  ${EIGEN3_INCLUDE_DIRS} 
+  ${PCL_INCLUDE_DIRS}
 )
 
-
-catkin_package(
- INCLUDE_DIRS include
- LIBRARIES path_searching
-)
-
-include_directories( 
-    SYSTEM 
-    include 
-    ${catkin_INCLUDE_DIRS}
-    ${EIGEN3_INCLUDE_DIRS} 
-    ${PCL_INCLUDE_DIRS}
-)
-
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS} -O3 -Wall")
-
-add_library( path_searching 
+add_library(path_searching 
     src/kinodynamic_astar.cpp 
-    )
-target_link_libraries( path_searching
-    ${catkin_LIBRARIES} 
+)
+target_link_libraries(path_searching
     ${PCL_LIBRARIES}
-    )  
+)
+
+ament_target_dependencies(path_searching
+  rclcpp
+  sensor_msgs
+  pcl_conversions
+  pcl_ros
+  rcl_interfaces
+)
+
+ament_export_include_directories(include)
+ament_export_libraries(path_searching)
+
+install(DIRECTORY include/
+  DESTINATION include
+)
+
+install(TARGETS
+  path_searching
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+
+ament_package()

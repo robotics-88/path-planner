@@ -1,8 +1,7 @@
 #ifndef _KINODYNAMIC_ASTAR_H
 #define _KINODYNAMIC_ASTAR_H
 
-#include <ros/console.h>
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 #include <Eigen/Eigen>
 #include <boost/functional/hash.hpp>
 #include <iostream>
@@ -11,17 +10,16 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
-// #include <octomap_msgs/Octomap.h>
-// #include <octomap_msgs/conversions.h>
-// #include <octomap_ros/conversions.h>
-// #include <octomap/octomap.h>
+
+#include "sensor_msgs/msg/point_cloud2.hpp"
+#include "rcl_interfaces/srv/set_parameters_atomically.hpp"
 
 #include <pcl/point_cloud.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/search/impl/kdtree.hpp>
 #include <pcl/search/kdtree.h>
 #include <pcl/point_types.h>
-#include <pcl_conversions/pcl_conversions.h>
+#include "pcl_conversions/pcl_conversions.h"
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/io/pcd_io.h>
 #include <math.h> 
@@ -118,6 +116,9 @@ class NodeHashTable {
 
 class KinodynamicAstar {
  private:
+
+  const std::shared_ptr<rclcpp::Node>& node_;
+  
   /* ---------- main data structure ---------- */
   vector<PathNodePtr> path_node_pool_;
   int use_node_num_, iter_num_;
@@ -152,7 +153,7 @@ class KinodynamicAstar {
   double min_alt_, max_alt_;
   double w_time_, horizon_, lambda_heu_;
   int allocate_num_, check_num_;
-  double tie_breaker_;
+  double tie_breaker_ = 1.0 + 1.0 / 10000;
   bool optimistic_;
   double min_safe_dist_;
 
@@ -181,18 +182,18 @@ class KinodynamicAstar {
                     Eigen::Matrix<double, 6, 1>& state1, Eigen::Vector3d um,
                     double tau);
 
-  ros::Publisher kd_ptcloud_pub_filtered,kd_ptcloud_pub_accumulated;
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr kd_ptcloud_pub_filtered, kd_ptcloud_pub_accumulated;
 
   ofstream outfile;
 
  public:
-  KinodynamicAstar(){};
+  KinodynamicAstar(const std::shared_ptr<rclcpp::Node>& node);
   ~KinodynamicAstar();
 
   enum { REACH_HORIZON = 1, REACH_END = 2, NO_PATH = 3, NEAR_END = 4 };
 
   /* main API */
-  void setParam(ros::NodeHandle& nh);
+  void setParam();
   void init();
   void reset();
   int search(Eigen::Vector3d start_pt, Eigen::Vector3d start_vel,
@@ -213,6 +214,11 @@ class KinodynamicAstar {
                   vector<Eigen::Vector3d>& start_end_derivatives);
 
   std::vector<PathNodePtr> getVisitedNodes();
+
+  rclcpp::Service<rcl_interfaces::srv::SetParametersAtomically>::SharedPtr universal_altitude_service_;
+  bool setAltitudeParams(const std::shared_ptr<rmw_request_id_t>/*request_header*/,
+                         const std::shared_ptr<rcl_interfaces::srv::SetParametersAtomically::Request> req,
+                         const std::shared_ptr<rcl_interfaces::srv::SetParametersAtomically::Response> resp);
 
   typedef shared_ptr<KinodynamicAstar> Ptr;
 
