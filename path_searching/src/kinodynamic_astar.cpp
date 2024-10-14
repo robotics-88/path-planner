@@ -45,7 +45,7 @@ void KinodynamicAstar::setKdtree(const pcl::PointCloud<pcl::PointXYZ> cloud_inpu
   // ROS_INFO("CLOUD INPUT NUM = %d",cloud_input_num);
   if( cloud_input_num%KT_HORIZON == 0 )
   {
-    cloud_accumulate2 = cloud_accumulate;
+    cloud_accumulate2 += cloud_accumulate;
     cloud_accumulate.clear();
     cloud_accumulate = (cloud_input);
   }else{
@@ -244,6 +244,10 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
                     abs(cur_node->index(1) - end_index(1)) <= tolerance &&
                     abs(cur_node->index(2) - end_index(2)) <= tolerance;
 
+    rclcpp::Time twhile = node_->get_clock()->now();
+    if (twhile.seconds() - t1.seconds() > 3.0) {
+        return NO_PATH;
+    }
     if (reach_horizon || near_end)
     {
       terminate_node = cur_node;
