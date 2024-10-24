@@ -12,7 +12,6 @@ using namespace Eigen;
 KinodynamicAstar::KinodynamicAstar(const std::shared_ptr<rclcpp::Node>& node) 
   : node_(node)
 {
-  universal_altitude_service_ = node_->create_service<rcl_interfaces::srv::SetParametersAtomically>("universal_altitude_params", std::bind(&KinodynamicAstar::setAltitudeParams, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 }
 
 KinodynamicAstar::~KinodynamicAstar()
@@ -141,23 +140,6 @@ bool KinodynamicAstar::isSafe(double x, double y,double z){
   return true;
 }
 
-
-bool KinodynamicAstar::setAltitudeParams(const std::shared_ptr<rmw_request_id_t>/*request_header*/,
-                        const std::shared_ptr<rcl_interfaces::srv::SetParametersAtomically::Request> req,
-                        const std::shared_ptr<rcl_interfaces::srv::SetParametersAtomically::Response> resp) {
-  for (int ii = 0; ii < req->parameters.size(); ii++) {
-    if (req->parameters.at(ii).name == "max_alt") {
-      max_alt_ = req->parameters.at(ii).value.double_value;
-    }
-    else if (req->parameters.at(ii).name == "min_alt") {
-      min_alt_ = req->parameters.at(ii).value.double_value;
-    }
-  }
-  auto result = rcl_interfaces::msg::SetParametersResult();
-  result.successful = true;
-  resp->result = result;
-}
-
 int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, Eigen::Vector3d start_a,
                              Eigen::Vector3d end_pt, Eigen::Vector3d end_v, bool init, bool dynamic, double time_start)
 {
@@ -171,19 +153,14 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
       rclcpp::FutureReturnCode::SUCCESS)
   {
     auto parameters = get_parameters_future.get();
-      for (auto & parameter : parameters) {
-        std::cout << "Parameter name, value: " <<
-                    parameter.get_name().c_str() << ", " << parameter.value_to_string().c_str() << std::endl;
-
-    if (parameter.get_name() == "max_alt") {
-      max_alt_ = parameter.as_double();
-    }
-    else if (parameter.get_name()== "min_alt") {
-      min_alt_ = (double) parameter.as_double();
-    }
+    for (auto & parameter : parameters) {
+      if (parameter.get_name() == "max_alt") {
+        max_alt_ = parameter.as_double();
       }
-
-      
+      else if (parameter.get_name()== "min_alt") {
+        min_alt_ = parameter.as_double();
+      }
+    }
   } else {
       RCLCPP_ERROR(node_->get_logger(), "Failed to get min/max alt params for path planner");
   }
