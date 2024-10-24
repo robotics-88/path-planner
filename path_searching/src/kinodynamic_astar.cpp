@@ -45,7 +45,7 @@ void KinodynamicAstar::setKdtree(const pcl::PointCloud<pcl::PointXYZ> cloud_inpu
   // ROS_INFO("CLOUD INPUT NUM = %d",cloud_input_num);
   if( cloud_input_num%KT_HORIZON == 0 )
   {
-    cloud_accumulate2 += cloud_accumulate;
+    cloud_accumulate2 = cloud_accumulate;
     cloud_accumulate.clear();
     cloud_accumulate = (cloud_input);
   }else{

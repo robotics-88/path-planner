@@ -376,55 +376,29 @@ std::shared_ptr<planner> planner_ptr;
 
 void cloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
 {
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_input (new pcl::PointCloud<pcl::PointXYZ>);
-	// pcl::PointCloud<pcl::PointXYZ> cloud_input;
-  	pcl::fromROSMsg(*msg, (*cloud_input));
+	pcl::PointCloud<pcl::PointXYZ> cloud_input;
+  	pcl::fromROSMsg(*msg, (cloud_input));
 	// RCLCPP_INFO("FROM ROS TO PCLOUD SUCESS");
 
 
 	//only input point clouds in 20 meters to reduce computation
   	rclcpp::Time t1 = node->get_clock()->now();
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cutoff (new pcl::PointCloud<pcl::PointXYZ>);
-	// pcl::PointCloud<pcl::PointXYZ> cloud_cutoff;
+	pcl::PointCloud<pcl::PointXYZ> cloud_cutoff;
 	// RCLCPP_INFO("FROM ROS TO PCLOUD Size is %d",int(cloud_input.size()));
-
-	double planning_horizon = 10.0;
-	pcl::PassThrough<pcl::PointXYZ> pass;
-	// Z
-	pass.setInputCloud (cloud_input);
-	pass.setFilterFieldName ("z");
-	double lo = cur_pos(2) - planning_horizon;
-	double hi = cur_pos(2) + planning_horizon;
-	pass.setFilterLimits (lo, hi);
-	pass.filter (*cloud_cutoff);
-	// X
-	pass.setInputCloud (cloud_cutoff);
-	pass.setFilterFieldName ("x");
-	lo = cur_pos(0) - planning_horizon;
-	hi = cur_pos(0) + planning_horizon;
-	pass.setFilterLimits (lo, hi);
-	pass.filter (*cloud_cutoff);
-	// Y
-	pass.setInputCloud (cloud_cutoff);
-	pass.setFilterFieldName ("y");
-	lo = cur_pos(1) - planning_horizon;
-	hi = cur_pos(1) + planning_horizon;
-	pass.setFilterLimits (lo, hi);
-	pass.filter (*cloud_cutoff);
-	// for (size_t i = 0; i < cloud_input.points.size(); i = i+2)
-  	// {
-    // if(fabs(cloud_input.points[i].x - cur_pos(0))>20 || fabs(cloud_input.points[i].y - cur_pos(1))>20 || fabs(cloud_input.points[i].z - cur_pos(2))>20)
-	// {
-	// 	continue;
-	// }else{
-	// 	cloud_cutoff.push_back(cloud_input.points[i]);
-	// }
-  	// }
+	for (size_t i = 0; i < cloud_input.points.size(); i = i+2)
+  	{
+    if(fabs(cloud_input.points[i].x - cur_pos(0))>20 || fabs(cloud_input.points[i].y - cur_pos(1))>20 || fabs(cloud_input.points[i].z - cur_pos(2))>20)
+	{
+		continue;
+	}else{
+		cloud_cutoff.push_back(cloud_input.points[i]);
+	}
+  	}
 
 	rclcpp::Time t2 = node->get_clock()->now();
  	// RCLCPP_INFO("Pointcloud CUTOFF used %f s",(t2-t1).toSec());
 	
-	kino_path_finder_->setKdtree(*cloud_cutoff);
+	kino_path_finder_->setKdtree(cloud_cutoff);
 	planner_ptr->replan();
 }
 
