@@ -380,25 +380,25 @@ void cloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
   	pcl::fromROSMsg(*msg, (cloud_input));
 	// RCLCPP_INFO("FROM ROS TO PCLOUD SUCESS");
 
-
+	// No need to do this anymore, input cloud is already aggregated
 	//only input point clouds in 20 meters to reduce computation
-  	rclcpp::Time t1 = node->get_clock()->now();
-	pcl::PointCloud<pcl::PointXYZ> cloud_cutoff;
-	// RCLCPP_INFO("FROM ROS TO PCLOUD Size is %d",int(cloud_input.size()));
-	for (size_t i = 0; i < cloud_input.points.size(); i = i+2)
-  	{
-    if(fabs(cloud_input.points[i].x - cur_pos(0))>20 || fabs(cloud_input.points[i].y - cur_pos(1))>20 || fabs(cloud_input.points[i].z - cur_pos(2))>20)
-	{
-		continue;
-	}else{
-		cloud_cutoff.push_back(cloud_input.points[i]);
-	}
-  	}
+  	// rclcpp::Time t1 = node->get_clock()->now();
+	// pcl::PointCloud<pcl::PointXYZ> cloud_cutoff;
+	// // RCLCPP_INFO("FROM ROS TO PCLOUD Size is %d",int(cloud_input.size()));
+	// for (size_t i = 0; i < cloud_input.points.size(); i = i+2)
+  	// {
+    // if(fabs(cloud_input.points[i].x - cur_pos(0))>20 || fabs(cloud_input.points[i].y - cur_pos(1))>20 || fabs(cloud_input.points[i].z - cur_pos(2))>20)
+	// {
+	// 	continue;
+	// }else{
+	// 	cloud_cutoff.push_back(cloud_input.points[i]);
+	// }
+  	// }
 
 	rclcpp::Time t2 = node->get_clock()->now();
  	// RCLCPP_INFO("Pointcloud CUTOFF used %f s",(t2-t1).toSec());
 	
-	kino_path_finder_->setKdtree(cloud_cutoff);
+	kino_path_finder_->setKdtree(cloud_input);
 	planner_ptr->replan();
 }
 
@@ -460,10 +460,12 @@ int main(int argc, char **argv)
 	node->get_parameter("search/pose_topic", pose_topic_);
 	node->get_parameter("search/cloud", cloud_topic);
 
-	auto odom_sub = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/odometry/out", 1, odomCb);
-	auto pointcloud_sub = node->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic, 1, cloudCallback);
-	auto pose_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>(pose_topic_, 100, poseCb);
-	auto goal_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>("/goal", 10000, goalCb);
+    auto sensor_qos = rclcpp::SensorDataQoS();
+
+	auto odom_sub = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/odometry/out", sensor_qos, odomCb);
+	auto pointcloud_sub = node->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic, sensor_qos, cloudCallback);
+	auto pose_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>(pose_topic_, sensor_qos, poseCb);
+	auto goal_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>("/goal", sensor_qos, goalCb);
 	auto time_index_sub = node->create_subscription<std_msgs::msg::Int64>("/demo_node/trajectory_time_index", 1000, timeindexCallBack);
 
 	vis_pub = node->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 0 );
@@ -474,7 +476,7 @@ int main(int argc, char **argv)
 
 	Bspline_pub = node->create_publisher<trajectory_msgs::msg::MultiDOFJointTrajectory>("smooth_waypoints",1);
 
-	pos_pub = node->create_publisher<nav_msgs::msg::Path>("/search_node/trajectory_position", 1);
+	pos_pub = node->create_publisher<nav_msgs::msg::Path>("/search_node/trajectory_position", sensor_qos);
     vel_pub = node->create_publisher<nav_msgs::msg::Path>("/search_node/trajectory_velocity", 1);
     acc_pub = node->create_publisher<nav_msgs::msg::Path>("/search_node/trajectory_accel", 1);
     path_size_pub = node->create_publisher<std_msgs::msg::Int64>("/search_node/trajectory_path_size", 1);

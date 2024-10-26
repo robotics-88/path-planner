@@ -30,71 +30,71 @@ KinodynamicAstar::~KinodynamicAstar()
 
 //Time accumulated KD-Tree realize
 void KinodynamicAstar::setKdtree(const pcl::PointCloud<pcl::PointXYZ> cloud_input){
+  // No need to do this anymore, input cloud is already aggregated 
+  // rclcpp::Time t1 = node_->get_clock()->now();
 
-  rclcpp::Time t1 = node_->get_clock()->now();
+  // if(cloud_input_num >= KT_HORIZON * KT_NUM)
+  // {
+  //   cloud_input_num = 0;
+  //   tree_input_num = 0;
+  // }else{
+  // tree_input_num = floor(cloud_input_num/KT_HORIZON);
+  // }
 
-  if(cloud_input_num >= KT_HORIZON * KT_NUM)
-  {
-    cloud_input_num = 0;
-    tree_input_num = 0;
-  }else{
-  tree_input_num = floor(cloud_input_num/KT_HORIZON);
-  }
+  // // ROS_INFO("CLOUD INPUT NUM = %d",cloud_input_num);
+  // if( cloud_input_num%KT_HORIZON == 0 )
+  // {
+  //   cloud_accumulate2 = cloud_accumulate;
+  //   cloud_accumulate.clear();
+  //   cloud_accumulate = (cloud_input);
+  // }else{
+  //   cloud_temp = cloud_accumulate + (cloud_input);
+  //   cloud_accumulate = cloud_temp;
+  // }
 
-  // ROS_INFO("CLOUD INPUT NUM = %d",cloud_input_num);
-  if( cloud_input_num%KT_HORIZON == 0 )
-  {
-    cloud_accumulate2 = cloud_accumulate;
-    cloud_accumulate.clear();
-    cloud_accumulate = (cloud_input);
-  }else{
-    cloud_temp = cloud_accumulate + (cloud_input);
-    cloud_accumulate = cloud_temp;
-  }
-
-  rclcpp::Time t4 = node_->get_clock()->now();
-  // Create the filtering object
+  // rclcpp::Time t4 = node_->get_clock()->now();
+  // // Create the filtering object
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;
-  cloud_filtered = cloud_accumulate.makeShared();;
+  cloud_filtered = cloud_input.makeShared();
 
-    // ROS_INFO("transfer success");
+  //   // ROS_INFO("transfer success");
 
-  pcl::VoxelGrid<pcl::PointXYZ> sor;
-  sor.setInputCloud (cloud_filtered);
-  sor.setLeafSize (0.1f, 0.1f, 0.1f);
-  sor.filter (*cloud_filtered);
+  // pcl::VoxelGrid<pcl::PointXYZ> sor;
+  // sor.setInputCloud (cloud_filtered);
+  // sor.setLeafSize (0.1f, 0.1f, 0.1f);
+  // sor.filter (*cloud_filtered);
 
-  cloud_accumulate = *cloud_filtered;
+  // cloud_accumulate = *cloud_filtered;
 
-  rclcpp::Time t3 = node_->get_clock()->now();
-  // ROS_INFO("Pointcloud filter used %f s",(t3-t4).toSec());
+  // rclcpp::Time t3 = node_->get_clock()->now();
+  // // ROS_INFO("Pointcloud filter used %f s",(t3-t4).toSec());
 
-   int cloud_size = (*cloud_filtered).points.size();
+  //  int cloud_size = (*cloud_filtered).points.size();
 
   // ROS_INFO("tree INPUT NUM = %d",tree_input_num);
 
   kdtreeLocalMap[tree_input_num].setInputCloud(cloud_filtered);//(*cloud_filtered).makeShared()
 
-  rclcpp::Time t2 = node_->get_clock()->now();
-  outfile<< (t2-t1).seconds() <<endl;
+  // rclcpp::Time t2 = node_->get_clock()->now();
+  // outfile<< (t2-t1).seconds() <<endl;
   
   // ROS_INFO("Pointcloud input to KDTREE used %f s, cloud size = %d",(t2-t1).toSec(),cloud_size);
 
-  cloud_input_num++;
+  // cloud_input_num++;
 
-            sensor_msgs::msg::PointCloud2 kdtreepointcloud,kdtreepointcloud2;
-            pcl::toROSMsg((*cloud_filtered), kdtreepointcloud);//
-            kdtreepointcloud.header.stamp = node_->get_clock()->now();//.fromSec(last_timestamp_lidar);
-            kdtreepointcloud.header.frame_id = map_frame_;
-            kd_ptcloud_pub_filtered->publish(kdtreepointcloud);
+            // sensor_msgs::msg::PointCloud2 kdtreepointcloud,kdtreepointcloud2;
+            // pcl::toROSMsg((*cloud_filtered), kdtreepointcloud);//
+            // kdtreepointcloud.header.stamp = node_->get_clock()->now();//.fromSec(last_timestamp_lidar);
+            // kdtreepointcloud.header.frame_id = map_frame_;
+            // kd_ptcloud_pub_filtered->publish(kdtreepointcloud);
 
-            pcl::toROSMsg(cloud_accumulate2, kdtreepointcloud2);//
-            kdtreepointcloud2.header.stamp = node_->get_clock()->now();//.fromSec(last_timestamp_lidar);
-            kdtreepointcloud2.header.frame_id = map_frame_;
-            kd_ptcloud_pub_accumulated->publish(kdtreepointcloud2);
+            // pcl::toROSMsg(cloud_accumulate2, kdtreepointcloud2);//
+            // kdtreepointcloud2.header.stamp = node_->get_clock()->now();//.fromSec(last_timestamp_lidar);
+            // kdtreepointcloud2.header.frame_id = map_frame_;
+            // kd_ptcloud_pub_accumulated->publish(kdtreepointcloud2);
 
 
-    cloud_all = cloud_all + cloud_input;
+    // cloud_all = cloud_all + cloud_input;
 }
 
 bool KinodynamicAstar::isSafe(double x, double y,double z){
