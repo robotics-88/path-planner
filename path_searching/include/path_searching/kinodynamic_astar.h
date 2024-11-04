@@ -28,7 +28,7 @@
 using namespace std;
 
 //TIme accumulated KD-Tree parameters
-#define KT_HORIZON 50
+#define KT_HORIZON 10
 #define KT_NUM 1
 
 #define IN_CLOSE_SET 'a'

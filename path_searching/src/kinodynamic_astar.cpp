@@ -144,7 +144,7 @@ int KinodynamicAstar::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v, 
                              Eigen::Vector3d end_pt, Eigen::Vector3d end_v, bool init, bool dynamic, double time_start)
 {
   auto node = rclcpp::Node::make_shared("parameter_client_node");
-  auto parameters_client = std::make_shared<rclcpp::AsyncParametersClient>(node, "task_manager");
+  auto parameters_client = std::make_shared<rclcpp::AsyncParametersClient>(node, "/task_manager/task_manager");
 
   std::vector<std::string> parameter_names = {"min_alt", "max_alt"};
   auto get_parameters_future = parameters_client->get_parameters(parameter_names);
