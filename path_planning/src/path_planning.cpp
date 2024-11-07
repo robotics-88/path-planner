@@ -23,6 +23,7 @@ Eigen::Vector3d cur_pos;
 std::shared_ptr<rclcpp::Node> node;
 
 //ROS publishers
+rclcpp::Publisher<std_msgs::msg::Header>::SharedPtr heartbeat_pub;
 rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr vis_pub;
 rclcpp::Publisher<trajectory_msgs::msg::MultiDOFJointTrajectory>::SharedPtr traj_pub;
 rclcpp::Publisher<trajectory_msgs::msg::MultiDOFJointTrajectory>::SharedPtr Bspline_pub;
@@ -34,12 +35,16 @@ rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr vel_pub;
 rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr acc_pub;
 rclcpp::Publisher<std_msgs::msg::Int64>::SharedPtr path_size_pub;
 
+rclcpp::TimerBase::SharedPtr hb_timer;
+
 ofstream outfile;
 
 unique_ptr<KinodynamicAstar> kino_path_finder_;
 
 std::string map_frame_;
 std::string pose_topic_;
+
+using namespace std::chrono_literals;
 
 class planner {
 public:
@@ -380,26 +385,32 @@ void cloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
   	pcl::fromROSMsg(*msg, (cloud_input));
 	// RCLCPP_INFO("FROM ROS TO PCLOUD SUCESS");
 
-
+	// No need to do this anymore, input cloud is already aggregated
 	//only input point clouds in 20 meters to reduce computation
-  	rclcpp::Time t1 = node->get_clock()->now();
-	pcl::PointCloud<pcl::PointXYZ> cloud_cutoff;
-	// RCLCPP_INFO("FROM ROS TO PCLOUD Size is %d",int(cloud_input.size()));
-	for (size_t i = 0; i < cloud_input.points.size(); i = i+2)
-  	{
-    if(fabs(cloud_input.points[i].x - cur_pos(0))>20 || fabs(cloud_input.points[i].y - cur_pos(1))>20 || fabs(cloud_input.points[i].z - cur_pos(2))>20)
-	{
-		continue;
-	}else{
-		cloud_cutoff.push_back(cloud_input.points[i]);
-	}
-  	}
+  	// rclcpp::Time t1 = node->get_clock()->now();
+	// pcl::PointCloud<pcl::PointXYZ> cloud_cutoff;
+	// // RCLCPP_INFO("FROM ROS TO PCLOUD Size is %d",int(cloud_input.size()));
+	// for (size_t i = 0; i < cloud_input.points.size(); i = i+2)
+  	// {
+    // if(fabs(cloud_input.points[i].x - cur_pos(0))>20 || fabs(cloud_input.points[i].y - cur_pos(1))>20 || fabs(cloud_input.points[i].z - cur_pos(2))>20)
+	// {
+	// 	continue;
+	// }else{
+	// 	cloud_cutoff.push_back(cloud_input.points[i]);
+	// }
+  	// }
 
 	rclcpp::Time t2 = node->get_clock()->now();
  	// RCLCPP_INFO("Pointcloud CUTOFF used %f s",(t2-t1).toSec());
 	
-	kino_path_finder_->setKdtree(cloud_cutoff);
+	kino_path_finder_->setKdtree(cloud_input);
 	planner_ptr->replan();
+}
+
+void heartbeatTimerCallback() {
+	std_msgs::msg::Header hb;
+	hb.frame_id = "path_planner"; // Not used
+	heartbeat_pub->publish(hb);
 }
 
 nav_msgs::msg::Odometry uav_odometry;
@@ -466,8 +477,12 @@ int main(int argc, char **argv)
 	auto goal_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>("/goal", 10000, goalCb);
 	auto time_index_sub = node->create_subscription<std_msgs::msg::Int64>("/demo_node/trajectory_time_index", 1000, timeindexCallBack);
 
+    rclcpp::QoS hb_qos(10);
+	hb_qos.liveliness();
+	heartbeat_pub = node->create_publisher<std_msgs::msg::Header>("/path_planner/heartbeat", hb_qos );
 	vis_pub = node->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 0 );
 	traj_pub = node->create_publisher<trajectory_msgs::msg::MultiDOFJointTrajectory>("waypoints",1);
+    hb_timer = node->create_wall_timer(500ms, heartbeatTimerCallback);
 
 	kino_pub = node->create_publisher<visualization_msgs::msg::Marker>("kino_marker", 1);
 	kino_path_pub = node->create_publisher<nav_msgs::msg::Path>("kino_path", 1);
