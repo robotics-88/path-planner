@@ -80,21 +80,17 @@ public:
 
 	bool setGoal(double x, double y, double z)
 	{
-		if(prev_goal[0] != x || prev_goal[1] != y || prev_goal[2] != z || prev_start[0] != start_pt(0)|| prev_start[1] != start_pt(1)|| prev_start[2] != start_pt(2))
-		{
-			goal_pt(0) = x;
-			goal_pt(1) = y;
-			goal_pt(2) = z;
+		goal_pt(0) = x;
+		goal_pt(1) = y;
+		goal_pt(2) = z;
 
-			std::cout << "Goal point set to: " << x << " " << y << " " << z << std::endl;
+		std::cout << "Goal point set to: " << x << " " << y << " " << z << std::endl;
 
-			if(set_start)
-				return plan();
-		}
-		else {
-			std::cout << "Path planner goal same as previous goal, not planning" << std::endl;
-		}
-		return false;
+		if(set_start)
+			return plan();
+		else
+			return false;
+
 	}
 
 	void update_timeindex(int time_index)
@@ -450,11 +446,6 @@ void poseCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 	cur_pos(2) = msg->pose.position.z;
 }
 
-void goalCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
-{
-	planner_ptr->setGoal(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
-}
-
 void timeindexCallBack(const std_msgs::msg::Int64::SharedPtr msg)
 {
 	std_msgs::msg::Int64 time_index_int64;
@@ -501,7 +492,6 @@ int main(int argc, char **argv)
 	auto odom_sub = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/odometry/out", 1, odomCb);
 	auto pointcloud_sub = node->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic, 1, cloudCallback);
 	auto pose_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>(pose_topic_, 100, poseCb);
-	// auto goal_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>("/goal", 10000, goalCb);
 	auto time_index_sub = node->create_subscription<std_msgs::msg::Int64>("/demo_node/trajectory_time_index", 1000, timeindexCallBack);
 
 	// Service for requesting a path
