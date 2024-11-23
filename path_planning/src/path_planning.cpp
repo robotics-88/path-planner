@@ -414,7 +414,7 @@ void cloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
  	// RCLCPP_INFO("Pointcloud CUTOFF used %f s",(t2-t1).toSec());
 	
 	kino_path_finder_->setKdtree(cloud_input);
-	planner_ptr->replan();
+	// planner_ptr->replan();
 }
 
 void heartbeatTimerCallback() {
