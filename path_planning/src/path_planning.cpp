@@ -381,6 +381,9 @@ std::shared_ptr<planner> planner_ptr;
 
 void cloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
 {
+    if (msg->data.empty()) {
+        return;
+    }
 	pcl::PointCloud<pcl::PointXYZ> cloud_input;
   	pcl::fromROSMsg(*msg, (cloud_input));
 	// RCLCPP_INFO("FROM ROS TO PCLOUD SUCESS");
