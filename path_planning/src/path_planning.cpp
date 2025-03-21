@@ -47,6 +47,7 @@ unique_ptr<KinodynamicAstar> kino_path_finder_;
 
 std::string map_frame_;
 std::string pose_topic_;
+int num_retries_ = 3;
 
 using namespace std::chrono_literals;
 
@@ -55,8 +56,8 @@ public:
 	void init_start(void)
 	{
 		if(!set_start)
-			std::cout << "Initialized" << std::endl;
-			// path_size_int64.data = 0;
+			RCLCPP_INFO(node->get_logger(), "Initialized");
+
 		set_start = true;		
 	}
 
@@ -84,7 +85,7 @@ public:
 		goal_pt(1) = y;
 		goal_pt(2) = z;
 
-		std::cout << "Goal point set to: " << x << " " << y << " " << z << std::endl;
+		RCLCPP_INFO(node->get_logger(), "Goal point set to: [%f, %f, %f]", x, y, z);
 
 		if(set_start)
 			return plan();
@@ -126,7 +127,7 @@ public:
 						replan_flag = !kino_path_finder_->isSafe(kino_nav_path.poses[idx].pose.position.x,kino_nav_path.poses[idx].pose.position.y,kino_nav_path.poses[idx].pose.position.z);
 						rclcpp::Time t2 = node->get_clock()->now();
 						// RCLCPP_INFO("CHECK one position time : %f",(t2-t1).toSec());
-						// std::cout << "Replan!" << std::endl;
+						// RCLCPP_INFO(node->get_logger(), "Replan!");
 					}
 					else
 					{	break;
@@ -135,7 +136,7 @@ public:
 				if(replan_flag)
 					plan();
 				else{}
-					// std::cout << "Replanning not required" << std::endl;
+					// RCLCPP_INFO(node->get_logger(), "Replanning not required");
 		}
 	}
 
@@ -158,25 +159,20 @@ public:
 				prev_start[2] = start_pt(2);
 
 				int status = kino_path_finder_->search(start_pt, start_vel, start_acc, goal_pt, goal_vel, true);
-				std::cout << "[kino replan]: startpoint kinodynamic search" << std::endl;
 
 				if (status == KinodynamicAstar::NO_PATH) {
-					std::cout << "[kino replan]: startpoint kinodynamic search fail!" << std::endl;
-
 					// retry searching with discontinuous initial state
 					kino_path_finder_->reset();
 					status = kino_path_finder_->search(start_pt, start_vel, start_acc, goal_pt, goal_vel, false);
 
 					if (status == KinodynamicAstar::NO_PATH) {
-						RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "[kino replan]: Can't find path.");
+						RCLCPP_WARN(node->get_logger(), "Can't find path.");
 						return false;
 					} else {
-						std::cout << "[kino replan]: retry search success." << std::endl;
 						firstplan_flag=false;
 					}
 
 				} else {
-					std::cout << "[kino replan]: kinodynamic search success." << std::endl;
 					firstplan_flag=false;
 				}					
 				}else{
@@ -232,22 +228,16 @@ public:
 				int status = kino_path_finder_->search(replan_startpt, replan_startpt_vel, start_acc, goal_pt, goal_vel, true);
 
 				if (status == KinodynamicAstar::NO_PATH) {
-					std::cout << "[kino replan]: replan kinodynamic search fail!" << std::endl;
 
 					// retry searching with discontinuous initial state
 					kino_path_finder_->reset();
 					status = kino_path_finder_->search(replan_startpt, replan_startpt_vel, start_acc, goal_pt, goal_vel, false);
 
 					if (status == KinodynamicAstar::NO_PATH) {
-						RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "[kino replan]: Can't find path.");
+						RCLCPP_WARN(node->get_logger(), "Replan search can't find path.");
 						return false;
-					} else {
-						std::cout << "[kino replan]: retry search success." << std::endl;
 					}
-
-				} else {
-					std::cout << "[kino replan]: kinodynamic search success." << std::endl;
-				}
+				} 
 				}
 
 				std::vector<Eigen::Vector3d> kino_path;
@@ -391,6 +381,9 @@ std::shared_ptr<planner> planner_ptr;
 
 void cloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
 {
+    if (msg->data.empty()) {
+        return;
+    }
 	pcl::PointCloud<pcl::PointXYZ> cloud_input;
   	pcl::fromROSMsg(*msg, (cloud_input));
 	// RCLCPP_INFO("FROM ROS TO PCLOUD SUCESS");
@@ -414,7 +407,7 @@ void cloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
  	// RCLCPP_INFO("Pointcloud CUTOFF used %f s",(t2-t1).toSec());
 	
 	kino_path_finder_->setKdtree(cloud_input);
-	// planner_ptr->replan();
+	planner_ptr->replan();
 }
 
 void heartbeatTimerCallback() {
@@ -446,6 +439,11 @@ void poseCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 	cur_pos(2) = msg->pose.position.z;
 }
 
+void goalCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
+{
+ 	planner_ptr->setGoal(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
+}
+
 void timeindexCallBack(const std_msgs::msg::Int64::SharedPtr msg)
 {
 	std_msgs::msg::Int64 time_index_int64;
@@ -458,13 +456,19 @@ void timeindexCallBack(const std_msgs::msg::Int64::SharedPtr msg)
 void returnPath(const std::shared_ptr<messages_88::srv::RequestPath::Request> req, 
 					   std::shared_ptr<messages_88::srv::RequestPath::Response> res)
 {
-	res->success = planner_ptr->setGoal(req->goal.pose.position.x, req->goal.pose.position.y, req->goal.pose.position.z);
+	res->success = false;
+	for (int i = 0; i < num_retries_; i++) {
+		res->success = planner_ptr->setGoal(req->goal.pose.position.x, req->goal.pose.position.y, req->goal.pose.position.z);
+		if (res->success) {
+			break;
+		}
+	}
 
 	if (res->success) {
 		res->path = last_path_;
 	}
 	else {
-		std::cout << "Path planning unsuccessful" << std::endl;
+		RCLCPP_INFO(node->get_logger(), "Path planning unsuccessful");
 	}
 }
 
@@ -479,6 +483,7 @@ int main(int argc, char **argv)
 	node->declare_parameter("search/pose_topic", pose_topic_);
 	std::string cloud_topic = "/cloud_registered_map";
 	node->declare_parameter("search/cloud", cloud_topic);
+	node->declare_parameter("search/num_retries", num_retries_);
 
     //kino astar
     kino_path_finder_.reset(new KinodynamicAstar(node));
@@ -488,10 +493,12 @@ int main(int argc, char **argv)
 	node->get_parameter("search/map_frame", map_frame_);
 	node->get_parameter("search/pose_topic", pose_topic_);
 	node->get_parameter("search/cloud", cloud_topic);
+	node->get_parameter("search/num_retries", num_retries_);
 
 	auto odom_sub = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/odometry/out", 1, odomCb);
 	auto pointcloud_sub = node->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic, 1, cloudCallback);
 	auto pose_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>(pose_topic_, 100, poseCb);
+	auto goal_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>("/goal", 10000, goalCb);
 	auto time_index_sub = node->create_subscription<std_msgs::msg::Int64>("/demo_node/trajectory_time_index", 1000, timeindexCallBack);
 
 	// Service for requesting a path
