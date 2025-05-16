@@ -20,8 +20,6 @@ find_package(trajectory_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 
-find_package(messages_88 REQUIRED)
-
 include_directories(
   include
   ${PCL_INCLUDE_DIRS}
@@ -40,7 +38,6 @@ ament_target_dependencies(${PROJECT_NAME}_node
   geometry_msgs
   pcl_ros
   pcl_conversions
-  messages_88
 )
 
 install(TARGETS

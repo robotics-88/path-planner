@@ -10,8 +10,6 @@
 #include "visualization_msgs/msg/marker.hpp"
 #include <pcl/filters/passthrough.h>
 
-#include "messages_88/srv/request_path.hpp"
-
 #include <fstream>
 #include <iostream>
 
@@ -470,24 +468,6 @@ void timeindexCallBack(const std_msgs::msg::Int64::SharedPtr msg) {
     planner_ptr->update_timeindex(time_index);
 }
 
-void returnPath(const std::shared_ptr<messages_88::srv::RequestPath::Request> req,
-                std::shared_ptr<messages_88::srv::RequestPath::Response> res) {
-    res->success = false;
-    for (int i = 0; i < num_retries_; i++) {
-        res->success = planner_ptr->setGoal(req->goal.pose.position.x, req->goal.pose.position.y,
-                                            req->goal.pose.position.z);
-        if (res->success) {
-            break;
-        }
-    }
-
-    if (res->success) {
-        res->path = last_path_;
-    } else {
-        RCLCPP_INFO(node->get_logger(), "Path planning unsuccessful");
-    }
-}
-
 int main(int argc, char **argv) {
     rclcpp::init(argc, argv);
     node = rclcpp::Node::make_shared("path_planner");
@@ -520,11 +500,6 @@ int main(int argc, char **argv) {
         node->create_subscription<geometry_msgs::msg::PoseStamped>("/goal", 10000, goalCb);
     auto time_index_sub = node->create_subscription<std_msgs::msg::Int64>(
         "/demo_node/trajectory_time_index", 1000, timeindexCallBack);
-
-    // Service for requesting a path
-    rclcpp::Service<messages_88::srv::RequestPath>::SharedPtr service =
-        node->create_service<messages_88::srv::RequestPath>("/path_planner/request_path",
-                                                            &returnPath);
 
     rclcpp::QoS hb_qos(10);
     hb_qos.liveliness();
