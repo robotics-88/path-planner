@@ -496,8 +496,7 @@ int main(int argc, char **argv) {
         node->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic, 1, cloudCallback);
     auto pose_sub =
         node->create_subscription<geometry_msgs::msg::PoseStamped>(pose_topic_, 100, poseCb);
-    auto goal_sub =
-        node->create_subscription<geometry_msgs::msg::PoseStamped>("/goal", 10000, goalCb);
+    auto goal_sub = node->create_subscription<geometry_msgs::msg::PoseStamped>("/goal", 10, goalCb);
     auto time_index_sub = node->create_subscription<std_msgs::msg::Int64>(
         "/demo_node/trajectory_time_index", 1000, timeindexCallBack);
 
