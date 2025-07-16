@@ -35,6 +35,13 @@ rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr vel_pub;
 rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr acc_pub;
 rclcpp::Publisher<std_msgs::msg::Int64>::SharedPtr path_size_pub;
 
+// Parameter handling for toggle on/off
+bool is_active_ = false;
+std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
+std::shared_ptr<rclcpp::ParameterCallbackHandle> cb_handle_;
+rclcpp::TimerBase::SharedPtr param_monitor_timer_;
+// End parameter handling
+
 nav_msgs::msg::Path last_path_;
 
 rclcpp::TimerBase::SharedPtr hb_timer;
@@ -457,6 +464,9 @@ void poseCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
 }
 
 void goalCb(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
+    if (!is_active_) {
+        return;
+    }
     planner_ptr->setGoal(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
 }
 
@@ -466,6 +476,34 @@ void timeindexCallBack(const std_msgs::msg::Int64::SharedPtr msg) {
     time_index_int64 = *msg;
     time_index = time_index_int64.data;
     planner_ptr->update_timeindex(time_index);
+}
+
+void parameterCallback(const rclcpp::Parameter &param) {
+    is_active_ = param.as_bool();
+    RCLCPP_INFO(rclcpp::get_logger("path_planner"), "Path planner (OA) node active: %s", is_active_ ? "true" : "false");
+}
+
+void startParamMonitoring(std::shared_ptr<rclcpp::Node> node) {
+    param_monitor_timer_ = node->create_wall_timer(
+        std::chrono::seconds(1),
+        [node]() {
+            static bool callback_registered = false;
+
+            if (!callback_registered) {
+                try {
+                    cb_handle_ = param_subscriber_->add_parameter_callback(
+                        "/task_manager/path_planning_node/set_node_active",
+                        parameterCallback,
+                        "task_manager/task_manager"
+                    );
+                    RCLCPP_INFO(node->get_logger(), "✅ Parameter callback registered for task_manager:path_planning_node/set_node_active");
+                    callback_registered = true;
+                    param_monitor_timer_->cancel();  // stop retrying
+                } catch (const std::exception &e) {
+                    RCLCPP_WARN(node->get_logger(), "Waiting for task_manager param to become available: %s", e.what());
+                }
+            }
+        });
 }
 
 int main(int argc, char **argv) {
@@ -520,6 +558,9 @@ int main(int argc, char **argv) {
     acc_pub = node->create_publisher<nav_msgs::msg::Path>("/search_node/trajectory_accel", 1);
     path_size_pub =
         node->create_publisher<std_msgs::msg::Int64>("/search_node/trajectory_path_size", 1);
+
+    param_subscriber_ = std::make_shared<rclcpp::ParameterEventHandler>(node);
+    startParamMonitoring(node); // Use timer to wait for task_manager to load perception registry
 
     rclcpp::spin(node);
     rclcpp::shutdown();
